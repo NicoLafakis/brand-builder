@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, Check, Sparkles, Globe } from 'lucide-react';
+import { Copy, Check, Sparkles } from 'lucide-react';
 import type { GradientPalette, Gradient } from '@/lib/types/brand';
 
 interface GradientDisplayProps {
@@ -24,24 +24,11 @@ function GradientCard({ gradient }: { gradient: Gradient }) {
         className="h-32 w-full relative"
         style={{ background: gradient.css }}
       >
-        {/* Source Badge */}
+        {/* AI Badge */}
         <div className="absolute top-2 right-2">
-          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-            gradient.source === 'extracted'
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-purple-100 text-purple-700'
-          }`}>
-            {gradient.source === 'extracted' ? (
-              <>
-                <Globe className="w-3 h-3" />
-                Extracted
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-3 h-3" />
-                AI Suggested
-              </>
-            )}
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+            <Sparkles className="w-3 h-3" />
+            AI Generated
           </span>
         </div>
 
@@ -121,56 +108,34 @@ function GradientCard({ gradient }: { gradient: Gradient }) {
 }
 
 export default function GradientDisplay({ gradients }: GradientDisplayProps) {
-  const hasExtracted = gradients.extracted.length > 0;
   const hasSuggested = gradients.suggested.length > 0;
 
-  if (!hasExtracted && !hasSuggested) {
+  if (!hasSuggested) {
     return (
       <div className="text-center py-12 text-gray-500">
-        <p>No gradients found or generated for this brand.</p>
+        <p>No gradients generated for this brand.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      {/* Extracted Gradients */}
-      {hasExtracted && (
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Globe className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Extracted from Website</h3>
-            <span className="text-sm text-gray-500">({gradients.extracted.length})</span>
-          </div>
-          <p className="text-sm text-gray-500 mb-4">
-            These gradients were found on the original website and represent the brand&apos;s existing gradient usage.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {gradients.extracted.map((gradient) => (
-              <GradientCard key={gradient.id} gradient={gradient} />
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* AI Suggested Gradients */}
-      {hasSuggested && (
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-semibold text-gray-900">AI Suggested Gradients</h3>
-            <span className="text-sm text-gray-500">({gradients.suggested.length})</span>
-          </div>
-          <p className="text-sm text-gray-500 mb-4">
-            Modern gradient suggestions based on your color palette and current web design trends.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {gradients.suggested.map((gradient) => (
-              <GradientCard key={gradient.id} gradient={gradient} />
-            ))}
-          </div>
-        </section>
-      )}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-5 h-5 text-purple-600" />
+          <h3 className="text-lg font-semibold text-gray-900">AI-Generated Gradients</h3>
+          <span className="text-sm text-gray-500">({gradients.suggested.length})</span>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">
+          Modern gradient suggestions based on your color palette and current web design trends.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {gradients.suggested.map((gradient) => (
+            <GradientCard key={gradient.id} gradient={gradient} />
+          ))}
+        </div>
+      </section>
 
       {/* Usage Tips */}
       <section className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl">
