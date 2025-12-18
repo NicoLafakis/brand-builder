@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { BrandKit, ExtractionProgress } from '../types/brand';
 import { extractBrandAssets } from './extractor';
 import { buildColorPalette, generateHarmonies } from '../utils/color';
+import { buildGradientPalette } from '../utils/gradient';
 import { buildTypography } from '../utils/typography';
 import { buildBrandPersonalityEnhanced, generateBrandVoiceEnhanced } from '../utils/personality';
 import { generateDesignTokens } from '../utils/tokens';
@@ -59,6 +60,9 @@ export async function buildBrandKit(
 
   progress('extracting-fonts', 30, 'Analyzing typography...');
 
+  // Determine AI availability for status messages
+  const aiStatus = isOpenAIAvailable() ? 'with AI' : 'with keyword matching';
+
   // Build color palette
   progress('generating-palette', 50, 'Generating color palette and harmonies...');
   const colorPalette = buildColorPalette(extractedData.colors);
@@ -68,12 +72,19 @@ export async function buildBrandKit(
     ? generateHarmonies(colorPalette.primary[0])
     : [];
 
+  // Build gradient palette (extracted + AI-generated)
+  progress('generating-palette', 55, `Generating gradient swatches ${aiStatus}...`);
+  const gradients = await buildGradientPalette(
+    extractedData.gradients,
+    colorPalette,
+    brandName
+  );
+
   // Build typography system
   progress('extracting-fonts', 60, 'Building typography system...');
   const typography = buildTypography(extractedData.fonts);
 
   // Analyze brand personality (uses AI when available for intelligent analysis)
-  const aiStatus = isOpenAIAvailable() ? 'with AI' : 'with keyword matching';
   progress('analyzing-personality', 70, `Analyzing brand personality ${aiStatus}...`);
   const personality = await buildBrandPersonalityEnhanced(extractedData.content);
 
@@ -94,6 +105,7 @@ export async function buildBrandKit(
     name: brandName,
     createdAt: new Date().toISOString(),
     colors: colorPalette,
+    gradients,
     harmonies,
     typography,
     logos: extractedData.logos,

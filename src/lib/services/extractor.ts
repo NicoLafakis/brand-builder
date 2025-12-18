@@ -3,8 +3,15 @@ import type { Color, ExtractedContent, Font, Logo } from '../types/brand';
 import { parseColor } from '../utils/color';
 import { categorizeFont, parseFontFamily } from '../utils/typography';
 
+export interface ExtractedGradient {
+  css: string;
+  type: 'linear' | 'radial' | 'conic';
+  angle?: number;
+}
+
 export interface ExtractionResult {
   colors: string[];
+  gradients: ExtractedGradient[];
   fonts: Font[];
   logos: Logo[];
   content: ExtractedContent;
@@ -37,14 +44,15 @@ export async function extractBrandAssets(url: string): Promise<ExtractionResult>
     await page.waitForTimeout(2000);
 
     // Extract all assets in parallel
-    const [colors, fonts, logos, content] = await Promise.all([
+    const [colors, gradients, fonts, logos, content] = await Promise.all([
       extractColors(page),
+      extractGradients(page),
       extractFonts(page),
       extractLogos(page, url),
       extractContent(page),
     ]);
 
-    return { colors, fonts, logos, content };
+    return { colors, gradients, fonts, logos, content };
   } finally {
     if (browser) {
       await browser.close();
@@ -119,6 +127,119 @@ async function extractColors(page: Page): Promise<string[]> {
 
   // Remove duplicates and sort by frequency (implied by order)
   return [...new Set(validColors)];
+}
+
+// Extract CSS gradients from the page
+async function extractGradients(page: Page): Promise<ExtractedGradient[]> {
+  const gradients = await page.evaluate(() => {
+    const gradientSet = new Set<string>();
+    const elements = document.querySelectorAll('*');
+
+    // Regex patterns for different gradient types
+    const linearGradientRegex = /linear-gradient\([^)]+\)/gi;
+    const radialGradientRegex = /radial-gradient\([^)]+\)/gi;
+    const conicGradientRegex = /conic-gradient\([^)]+\)/gi;
+    const repeatingLinearRegex = /repeating-linear-gradient\([^)]+\)/gi;
+    const repeatingRadialRegex = /repeating-radial-gradient\([^)]+\)/gi;
+
+    elements.forEach(el => {
+      const style = getComputedStyle(el);
+      const bgImage = style.backgroundImage;
+      const bg = style.background;
+
+      // Check both background and background-image
+      [bgImage, bg].forEach(value => {
+        if (value && value !== 'none') {
+          // Extract all gradient patterns
+          const allPatterns = [
+            linearGradientRegex,
+            radialGradientRegex,
+            conicGradientRegex,
+            repeatingLinearRegex,
+            repeatingRadialRegex,
+          ];
+
+          allPatterns.forEach(pattern => {
+            const matches = value.match(pattern);
+            if (matches) {
+              matches.forEach(match => gradientSet.add(match));
+            }
+          });
+        }
+      });
+    });
+
+    // Also check CSS custom properties and stylesheets
+    Array.from(document.styleSheets).forEach(sheet => {
+      try {
+        Array.from(sheet.cssRules).forEach(rule => {
+          if (rule instanceof CSSStyleRule) {
+            const bgImage = rule.style.backgroundImage;
+            const bg = rule.style.background;
+
+            [bgImage, bg].forEach(value => {
+              if (value) {
+                const patterns = [
+                  linearGradientRegex,
+                  radialGradientRegex,
+                  conicGradientRegex,
+                ];
+                patterns.forEach(pattern => {
+                  const matches = value.match(pattern);
+                  if (matches) {
+                    matches.forEach(match => gradientSet.add(match));
+                  }
+                });
+              }
+            });
+          }
+        });
+      } catch {
+        // Cross-origin stylesheet, skip
+      }
+    });
+
+    return Array.from(gradientSet);
+  });
+
+  // Parse and categorize gradients
+  return gradients.map(css => {
+    let type: 'linear' | 'radial' | 'conic' = 'linear';
+    let angle: number | undefined;
+
+    if (css.includes('radial-gradient')) {
+      type = 'radial';
+    } else if (css.includes('conic-gradient')) {
+      type = 'conic';
+    } else {
+      // Extract angle from linear gradient
+      const angleMatch = css.match(/linear-gradient\(\s*(\d+)deg/);
+      if (angleMatch) {
+        angle = parseInt(angleMatch[1], 10);
+      } else if (css.includes('to right')) {
+        angle = 90;
+      } else if (css.includes('to left')) {
+        angle = 270;
+      } else if (css.includes('to bottom')) {
+        angle = 180;
+      } else if (css.includes('to top')) {
+        angle = 0;
+      } else if (css.includes('to bottom right') || css.includes('to right bottom')) {
+        angle = 135;
+      } else if (css.includes('to top right') || css.includes('to right top')) {
+        angle = 45;
+      } else if (css.includes('to bottom left') || css.includes('to left bottom')) {
+        angle = 225;
+      } else if (css.includes('to top left') || css.includes('to left top')) {
+        angle = 315;
+      }
+    }
+
+    return { css, type, angle };
+  }).filter((g, index, self) =>
+    // Remove duplicates
+    index === self.findIndex(t => t.css === g.css)
+  );
 }
 
 // Extract fonts from computed styles and stylesheets
