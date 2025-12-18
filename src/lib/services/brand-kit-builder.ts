@@ -3,8 +3,9 @@ import type { BrandKit, ExtractionProgress } from '../types/brand';
 import { extractBrandAssets } from './extractor';
 import { buildColorPalette, generateHarmonies } from '../utils/color';
 import { buildTypography } from '../utils/typography';
-import { buildBrandPersonality, generateBrandVoice } from '../utils/personality';
+import { buildBrandPersonalityEnhanced, generateBrandVoiceEnhanced } from '../utils/personality';
 import { generateDesignTokens } from '../utils/tokens';
+import { isOpenAIAvailable } from './openai';
 
 export type ProgressCallback = (progress: ExtractionProgress) => void;
 
@@ -71,12 +72,14 @@ export async function buildBrandKit(
   progress('extracting-fonts', 60, 'Building typography system...');
   const typography = buildTypography(extractedData.fonts);
 
-  // Analyze brand personality
-  progress('analyzing-personality', 70, 'Analyzing brand personality...');
-  const personality = buildBrandPersonality(extractedData.content);
+  // Analyze brand personality (uses AI when available for intelligent analysis)
+  const aiStatus = isOpenAIAvailable() ? 'with AI' : 'with keyword matching';
+  progress('analyzing-personality', 70, `Analyzing brand personality ${aiStatus}...`);
+  const personality = await buildBrandPersonalityEnhanced(extractedData.content);
 
-  // Generate brand voice guidelines
-  const voice = generateBrandVoice(personality, extractedData.content);
+  // Generate brand voice guidelines (uses AI when available)
+  progress('analyzing-personality', 80, `Generating brand voice guidelines ${aiStatus}...`);
+  const voice = await generateBrandVoiceEnhanced(personality, extractedData.content);
 
   // Generate design tokens
   progress('generating-tokens', 85, 'Generating design tokens...');
