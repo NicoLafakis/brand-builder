@@ -11,9 +11,11 @@ import {
   Loader2,
   FileJson,
   FileCode,
+  Blend,
 } from 'lucide-react';
 import type { BrandKit } from '@/lib/types/brand';
 import ColorPalette from './ColorPalette';
+import GradientDisplay from './GradientDisplay';
 import TypographyDisplay from './TypographyDisplay';
 import BrandVoiceDisplay from './BrandVoiceDisplay';
 import LogoDisplay from './LogoDisplay';
@@ -23,10 +25,11 @@ interface BrandKitDisplayProps {
   brandKit: BrandKit;
 }
 
-type TabId = 'colors' | 'typography' | 'voice' | 'logos' | 'tokens';
+type TabId = 'colors' | 'gradients' | 'typography' | 'voice' | 'logos' | 'tokens';
 
 const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'colors', label: 'Colors', icon: <Palette className="w-4 h-4" /> },
+  { id: 'gradients', label: 'Gradients', icon: <Blend className="w-4 h-4" /> },
   { id: 'typography', label: 'Typography', icon: <Type className="w-4 h-4" /> },
   { id: 'voice', label: 'Brand Voice', icon: <MessageSquare className="w-4 h-4" /> },
   { id: 'logos', label: 'Logos', icon: <Image className="w-4 h-4" /> },
@@ -120,6 +123,7 @@ export default function BrandKitDisplay({ brandKit }: BrandKitDisplayProps) {
       {/* Tab Content */}
       <div className="p-6">
         {activeTab === 'colors' && <ColorPalette colors={brandKit.colors} />}
+        {activeTab === 'gradients' && <GradientDisplay gradients={brandKit.gradients} />}
         {activeTab === 'typography' && <TypographyDisplay typography={brandKit.typography} />}
         {activeTab === 'voice' && (
           <BrandVoiceDisplay

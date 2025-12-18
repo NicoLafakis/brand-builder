@@ -8,6 +8,23 @@ export interface Color {
   usage?: string;
 }
 
+export interface Gradient {
+  id: string;
+  name: string;
+  type: 'linear' | 'radial' | 'conic';
+  css: string;
+  colors: Color[];
+  angle?: number; // For linear gradients
+  description?: string;
+  usage?: string;
+  source: 'extracted' | 'generated';
+}
+
+export interface GradientPalette {
+  extracted: Gradient[];
+  suggested: Gradient[];
+}
+
 export interface ColorPalette {
   primary: Color[];
   secondary: Color[];
@@ -157,6 +174,7 @@ export interface BrandKit {
   name: string;
   createdAt: string;
   colors: ColorPalette;
+  gradients: GradientPalette;
   harmonies: ColorHarmony[];
   typography: Typography;
   logos: Logo[];
