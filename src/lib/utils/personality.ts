@@ -1,4 +1,11 @@
 import type { BrandArchetype, BrandPersonality, BrandVoice, ExtractedContent } from '../types/brand';
+import {
+  analyzeArchetypeWithAI,
+  analyzeToneWithAI,
+  analyzeAakerDimensionsWithAI,
+  generateBrandVoiceWithAI,
+  isOpenAIAvailable,
+} from '../services/openai';
 
 // Jungian Brand Archetypes
 export const ARCHETYPES: Record<string, BrandArchetype> = {
@@ -320,4 +327,83 @@ function getWordsToAvoid(archetype: string): string[] {
   };
 
   return avoidByArchetype[archetype] || ['inappropriate', 'offensive', 'misleading'];
+}
+
+// ============================================================================
+// AI-ENHANCED FUNCTIONS
+// These functions use OpenAI for intelligent brand analysis when available,
+// falling back to keyword-based analysis when the API is unavailable.
+// ============================================================================
+
+/**
+ * Analyzes brand archetype using AI when available, falls back to keyword matching
+ */
+export async function analyzeArchetypeEnhanced(content: ExtractedContent): Promise<BrandArchetype> {
+  if (isOpenAIAvailable()) {
+    try {
+      return await analyzeArchetypeWithAI(content);
+    } catch (error) {
+      console.warn('AI archetype analysis failed, falling back to keyword matching:', error);
+    }
+  }
+  return analyzeArchetype(content);
+}
+
+/**
+ * Analyzes tone dimensions using AI when available, falls back to keyword matching
+ */
+export async function analyzeToneEnhanced(content: ExtractedContent): Promise<BrandPersonality['tone']> {
+  if (isOpenAIAvailable()) {
+    try {
+      return await analyzeToneWithAI(content);
+    } catch (error) {
+      console.warn('AI tone analysis failed, falling back to keyword matching:', error);
+    }
+  }
+  return analyzeTone(content);
+}
+
+/**
+ * Analyzes Aaker dimensions using AI when available, falls back to keyword matching
+ */
+export async function analyzeAakerDimensionsEnhanced(content: ExtractedContent): Promise<BrandPersonality['dimensions']> {
+  if (isOpenAIAvailable()) {
+    try {
+      return await analyzeAakerDimensionsWithAI(content);
+    } catch (error) {
+      console.warn('AI Aaker dimensions analysis failed, falling back to keyword matching:', error);
+    }
+  }
+  return analyzeAakerDimensions(content);
+}
+
+/**
+ * Builds complete brand personality using AI-enhanced analysis
+ * Runs all three analyses in parallel for better performance
+ */
+export async function buildBrandPersonalityEnhanced(content: ExtractedContent): Promise<BrandPersonality> {
+  const [archetype, dimensions, tone] = await Promise.all([
+    analyzeArchetypeEnhanced(content),
+    analyzeAakerDimensionsEnhanced(content),
+    analyzeToneEnhanced(content),
+  ]);
+
+  return { archetype, dimensions, tone };
+}
+
+/**
+ * Generates brand voice guidelines using AI when available, falls back to template-based
+ */
+export async function generateBrandVoiceEnhanced(
+  personality: BrandPersonality,
+  content: ExtractedContent
+): Promise<BrandVoice> {
+  if (isOpenAIAvailable()) {
+    try {
+      return await generateBrandVoiceWithAI(personality, content);
+    } catch (error) {
+      console.warn('AI brand voice generation failed, falling back to template-based:', error);
+    }
+  }
+  return generateBrandVoice(personality, content);
 }
