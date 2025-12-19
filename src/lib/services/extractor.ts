@@ -26,44 +26,61 @@ interface RawCSSData {
 }
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-const SCREENSHOTLAYER_API = 'https://api.screenshotlayer.com/api/capture';
+const FIRECRAWL_API = 'https://api.firecrawl.dev/v1/scrape';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// Capture a screenshot of a URL using screenshotlayer API
+// Capture a screenshot of a URL using Firecrawl API
 async function captureScreenshot(url: string): Promise<string | null> {
-  const apiKey = process.env.SCREENSHOTLAYER_API_KEY;
+  const apiKey = process.env.FIRECRAWL_API_KEY;
 
   if (!apiKey) {
-    console.log('SCREENSHOTLAYER_API_KEY not set, skipping vision extraction');
+    console.log('FIRECRAWL_API_KEY not set, skipping vision extraction');
     return null;
   }
 
-  const params = new URLSearchParams({
-    access_key: apiKey,
-    url: url,
-    viewport: '1440x900',
-    format: 'png',
-    force: '1', // Force fresh capture
-  });
-
   try {
-    const response = await fetch(`${SCREENSHOTLAYER_API}?${params}`);
+    const response = await fetch(FIRECRAWL_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        url: url,
+        formats: ['screenshot'],
+        waitFor: 2000, // Wait for page to load
+      }),
+    });
 
     if (!response.ok) {
-      console.error('Screenshot capture failed:', response.status);
+      const error = await response.text();
+      console.error('Screenshot capture failed:', response.status, error);
       return null;
     }
 
-    // Check if we got an image or an error JSON
-    const contentType = response.headers.get('content-type');
-    if (contentType?.includes('application/json')) {
-      const error = await response.json();
-      console.error('Screenshot API error:', error);
+    const data = await response.json();
+
+    if (!data.success || !data.data?.screenshot) {
+      console.error('Screenshot not available in response:', data.error || 'No screenshot returned');
       return null;
     }
 
-    // Convert image to base64
-    const buffer = await response.arrayBuffer();
+    // Firecrawl returns a URL to the screenshot, fetch and convert to base64
+    const screenshotUrl = data.data.screenshot;
+
+    // If it's already a data URL, return it directly
+    if (screenshotUrl.startsWith('data:')) {
+      return screenshotUrl;
+    }
+
+    // Otherwise fetch the screenshot and convert to base64
+    const imageResponse = await fetch(screenshotUrl);
+    if (!imageResponse.ok) {
+      console.error('Failed to fetch screenshot image:', imageResponse.status);
+      return null;
+    }
+
+    const buffer = await imageResponse.arrayBuffer();
     const base64 = Buffer.from(buffer).toString('base64');
     return `data:image/png;base64,${base64}`;
   } catch (error) {
