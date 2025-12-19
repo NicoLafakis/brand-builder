@@ -12,6 +12,7 @@ import {
   FileJson,
   FileCode,
   Blend,
+  Info,
 } from 'lucide-react';
 import type { BrandKit } from '@/lib/types/brand';
 import ColorPalette from './ColorPalette';
@@ -133,7 +134,44 @@ export default function BrandKitDisplay({ brandKit }: BrandKitDisplayProps) {
         )}
         {activeTab === 'logos' && <LogoDisplay logos={brandKit.logos} />}
         {activeTab === 'tokens' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Explanation Section */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+              <div className="flex items-start gap-4">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Info className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">What are Design Tokens?</h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Design tokens are the atomic building blocks of your design system. They store visual design
+                    attributes like colors, typography, and spacing as reusable variables, ensuring consistency
+                    across all your products and platforms.
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <h4 className="font-medium text-gray-800 text-sm mb-1">Why use them?</h4>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        <li>• Maintain brand consistency across projects</li>
+                        <li>• Enable easy theme switching and dark mode</li>
+                        <li>• Streamline handoff between design and development</li>
+                        <li>• Scale design decisions across teams</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-800 text-sm mb-1">How to use them?</h4>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        <li>• <strong>JSON:</strong> Import into Figma, Style Dictionary, or design tools</li>
+                        <li>• <strong>CSS:</strong> Drop into your stylesheet and reference with var()</li>
+                        <li>• <strong>Export Kit:</strong> Get SCSS and Tailwind config included</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Token View Toggle */}
             <div className="flex gap-2">
               <button
                 onClick={() => setTokenView('json')}
@@ -158,6 +196,8 @@ export default function BrandKitDisplay({ brandKit }: BrandKitDisplayProps) {
                 CSS Variables
               </button>
             </div>
+
+            {/* Code Display */}
             <div className="relative">
               <pre className="p-4 bg-gray-900 text-gray-100 rounded-xl overflow-x-auto text-sm max-h-[500px] overflow-y-auto">
                 <code>
