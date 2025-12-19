@@ -1,14 +1,18 @@
 /**
  * OpenAI Service for Brand Builder
  *
- * This service integrates GPT-4.1-mini to provide intelligent reasoning
+ * This service integrates multiple GPT models to provide intelligent reasoning
  * for brand personality analysis, tone dimensions, and voice generation.
+ *
+ * Model Strategy:
+ * - gpt-4.1-mini-2025-04-14: Data crunching, extraction, and structured analysis
+ * - gpt-5-mini-2025-08-07: Advanced reasoning for tone, cadence, and voice generation
  *
  * The AI helps with:
  * - Analyzing brand archetype from website content (semantic understanding vs keyword matching)
  * - Determining tone dimensions (formal/casual, serious/funny, etc.)
  * - Calculating Aaker brand personality dimensions
- * - Generating personalized brand voice guidelines
+ * - Generating personalized brand voice guidelines with nuanced reasoning
  */
 
 import type {
@@ -20,7 +24,14 @@ import type {
 import { ARCHETYPES } from '../utils/personality';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const MODEL = 'gpt-4.1-mini-2025-04-14';
+
+// Model selection based on task type
+const MODELS = {
+  // Fast model for data extraction and structured analysis
+  DATA: 'gpt-4.1-mini-2025-04-14',
+  // Advanced reasoning model for nuanced brand voice and tone decisions
+  REASONING: 'gpt-5-mini-2025-08-07',
+};
 
 interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant';
@@ -35,15 +46,23 @@ interface OpenAIResponse {
   }[];
 }
 
+type ModelType = 'DATA' | 'REASONING';
+
 /**
- * Makes a request to the OpenAI API
+ * Makes a request to the OpenAI API with specified model type
  */
-async function callOpenAI(messages: OpenAIMessage[], temperature = 0.7): Promise<string> {
+async function callOpenAI(
+  messages: OpenAIMessage[],
+  modelType: ModelType = 'DATA',
+  temperature = 0.7
+): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY environment variable is not set');
   }
+
+  const model = MODELS[modelType];
 
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
@@ -52,7 +71,7 @@ async function callOpenAI(messages: OpenAIMessage[], temperature = 0.7): Promise
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages,
       temperature,
       max_tokens: 2000,
@@ -124,7 +143,8 @@ Respond ONLY with valid JSON in this exact format:
   ];
 
   try {
-    const response = await callOpenAI(messages, 0.5);
+    // Use DATA model for structured archetype extraction
+    const response = await callOpenAI(messages, 'DATA', 0.5);
     const parsed = JSON.parse(response);
 
     return {
@@ -142,7 +162,8 @@ Respond ONLY with valid JSON in this exact format:
 }
 
 /**
- * Analyzes tone dimensions using AI
+ * Analyzes tone dimensions using AI with advanced reasoning
+ * Uses the REASONING model for nuanced tone understanding
  */
 export async function analyzeToneWithAI(content: ExtractedContent): Promise<BrandPersonality['tone']> {
   const contentSummary = prepareContentForAnalysis(content);
@@ -156,7 +177,16 @@ export async function analyzeToneWithAI(content: ExtractedContent): Promise<Bran
 Website Content:
 ${contentSummary}
 
-Evaluate the writing style, word choices, punctuation, and overall communication approach to score these dimensions from 1-10:
+Think deeply about the brand's communication style. Consider not just what they say, but HOW they say it.
+Look for subtle cues in:
+- Sentence structure and rhythm
+- Word choices and vocabulary level
+- Punctuation patterns (exclamation points, ellipses, etc.)
+- Use of questions, commands, or statements
+- Emotional undertones and energy levels
+- Cultural references or industry jargon
+
+Score these dimensions from 1-10:
 
 1. Formality vs Casual (1 = very formal/corporate, 10 = very casual/friendly)
    Consider: sentence structure, vocabulary complexity, use of contractions, direct address
@@ -176,13 +206,14 @@ Respond ONLY with valid JSON in this exact format:
   "seriousFunny": <number 1-10>,
   "respectfulIrreverent": <number 1-10>,
   "matterOfFactEnthusiastic": <number 1-10>,
-  "reasoning": "Brief explanation of why these scores were assigned"
+  "reasoning": "Detailed explanation of why these scores were assigned, citing specific examples from the content"
 }`
     }
   ];
 
   try {
-    const response = await callOpenAI(messages, 0.5);
+    // Use REASONING model for nuanced tone analysis
+    const response = await callOpenAI(messages, 'REASONING', 0.5);
     const parsed = JSON.parse(response);
 
     return {
@@ -205,6 +236,7 @@ Respond ONLY with valid JSON in this exact format:
 
 /**
  * Analyzes Aaker brand personality dimensions using AI
+ * Uses DATA model for structured dimension scoring
  */
 export async function analyzeAakerDimensionsWithAI(content: ExtractedContent): Promise<BrandPersonality['dimensions']> {
   const contentSummary = prepareContentForAnalysis(content);
@@ -239,7 +271,8 @@ Respond ONLY with valid JSON in this exact format:
   ];
 
   try {
-    const response = await callOpenAI(messages, 0.5);
+    // Use DATA model for structured dimension scoring
+    const response = await callOpenAI(messages, 'DATA', 0.5);
     const parsed = JSON.parse(response);
 
     return {
@@ -263,7 +296,8 @@ Respond ONLY with valid JSON in this exact format:
 }
 
 /**
- * Generates comprehensive brand voice guidelines using AI
+ * Generates comprehensive brand voice guidelines using AI with advanced reasoning
+ * Uses REASONING model for nuanced voice, tone, and cadence generation
  */
 export async function generateBrandVoiceWithAI(
   personality: BrandPersonality,
@@ -285,10 +319,10 @@ Brand Personality Analysis:
 - Tone Attributes: ${personality.archetype.toneAttributes.join(', ')}
 
 Tone Dimensions (1-10 scale):
-- Formality vs Casual: ${personality.tone.formalityCasual}
-- Serious vs Funny: ${personality.tone.seriousFunny}
-- Respectful vs Irreverent: ${personality.tone.respectfulIrreverent}
-- Matter-of-fact vs Enthusiastic: ${personality.tone.matterOfFactEnthusiastic}
+- Formality vs Casual: ${personality.tone.formalityCasual} ${personality.tone.formalityCasual <= 3 ? '(formal)' : personality.tone.formalityCasual >= 7 ? '(casual)' : '(balanced)'}
+- Serious vs Funny: ${personality.tone.seriousFunny} ${personality.tone.seriousFunny <= 3 ? '(serious)' : personality.tone.seriousFunny >= 7 ? '(playful)' : '(balanced)'}
+- Respectful vs Irreverent: ${personality.tone.respectfulIrreverent} ${personality.tone.respectfulIrreverent <= 3 ? '(traditional)' : personality.tone.respectfulIrreverent >= 7 ? '(bold)' : '(balanced)'}
+- Matter-of-fact vs Enthusiastic: ${personality.tone.matterOfFactEnthusiastic} ${personality.tone.matterOfFactEnthusiastic <= 3 ? '(measured)' : personality.tone.matterOfFactEnthusiastic >= 7 ? '(energetic)' : '(balanced)'}
 
 Aaker Dimensions (0-10 scale):
 - Sincerity: ${personality.dimensions.sincerity}
@@ -300,11 +334,29 @@ Aaker Dimensions (0-10 scale):
 Website Content:
 ${contentSummary}
 
+Think carefully about how this brand should communicate. Consider:
+1. The emotional connection they want to build with their audience
+2. How their archetype influences word choice and messaging style
+3. The rhythm and pacing that would feel authentic to this brand
+4. Specific linguistic patterns that would reinforce their identity
+
 Generate detailed brand voice guidelines including:
-1. Three voice principles (with name, description, how to apply, example, and what not to do)
-2. Vocabulary guidance (words to use and avoid)
-3. Tone description
-4. Cadence description (sentence structure and rhythm)
+
+1. Three distinct voice principles that capture the essence of how this brand should communicate.
+   Each principle should be actionable and memorable, with real-world examples.
+
+2. Vocabulary guidance that reflects the brand's personality - specific words and phrases
+   that feel "on brand" vs. those that would feel jarring or off-putting.
+
+3. A rich tone description that paints a picture of how the brand sounds when it speaks.
+   Go beyond basic descriptors - explain the emotional quality and character.
+
+4. A thoughtful cadence description covering:
+   - Typical sentence length and variation
+   - Paragraph structure
+   - Use of fragments, questions, or exclamations
+   - Pacing and rhythm patterns
+   - How the brand builds to key points
 
 Respond ONLY with valid JSON in this exact format:
 {
@@ -322,14 +374,15 @@ Respond ONLY with valid JSON in this exact format:
     "wordsToUse": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8"],
     "wordsToAvoid": ["word1", "word2", "word3", "word4"]
   },
-  "toneDescription": "Comprehensive description of how the brand should sound",
-  "cadenceDescription": "Guidance on sentence structure, rhythm, and pacing"
+  "toneDescription": "Rich, comprehensive description of how the brand should sound - its character, warmth, and emotional quality",
+  "cadenceDescription": "Detailed guidance on sentence structure, rhythm, pacing, and how to build momentum in copy"
 }`
     }
   ];
 
   try {
-    const response = await callOpenAI(messages, 0.7);
+    // Use REASONING model for nuanced voice generation
+    const response = await callOpenAI(messages, 'REASONING', 0.7);
     const parsed = JSON.parse(response);
 
     return {
