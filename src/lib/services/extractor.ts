@@ -26,55 +26,260 @@ interface RawCSSData {
 }
 
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+const SCREENSHOTLAYER_API = 'https://api.screenshotlayer.com/api/capture';
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// Extract all brand assets from a URL using Cheerio + CSS parsing + LLM
-export async function extractBrandAssets(url: string): Promise<ExtractionResult> {
-  // Fetch the HTML
-  const response = await fetch(url, {
-    headers: { 'User-Agent': USER_AGENT },
-  });
+// Capture a screenshot of a URL using screenshotlayer API
+async function captureScreenshot(url: string): Promise<string | null> {
+  const apiKey = process.env.SCREENSHOTLAYER_API_KEY;
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status}`);
+  if (!apiKey) {
+    console.log('SCREENSHOTLAYER_API_KEY not set, skipping vision extraction');
+    return null;
   }
 
-  const html = await response.text();
+  const params = new URLSearchParams({
+    access_key: apiKey,
+    url: url,
+    viewport: '1440x900',
+    format: 'png',
+    force: '1', // Force fresh capture
+  });
+
+  try {
+    const response = await fetch(`${SCREENSHOTLAYER_API}?${params}`);
+
+    if (!response.ok) {
+      console.error('Screenshot capture failed:', response.status);
+      return null;
+    }
+
+    // Check if we got an image or an error JSON
+    const contentType = response.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+      const error = await response.json();
+      console.error('Screenshot API error:', error);
+      return null;
+    }
+
+    // Convert image to base64
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+    return `data:image/png;base64,${base64}`;
+  } catch (error) {
+    console.error('Screenshot capture error:', error);
+    return null;
+  }
+}
+
+// Vision-based brand extraction using GPT-4o-mini
+interface VisionExtractionResult {
+  colors: string[];
+  gradients: ExtractedGradient[];
+  fonts: Font[];
+  description: string;
+}
+
+async function extractBrandAssetsWithVision(screenshotBase64: string, websiteUrl: string): Promise<VisionExtractionResult | null> {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    return null;
+  }
+
+  const prompt = `Analyze this website screenshot and extract the brand's visual identity.
+
+Website URL: ${websiteUrl}
+
+Please identify:
+
+1. **Brand Colors** (provide exact hex codes):
+   - Primary color (the main brand color, usually in logo/buttons/headers)
+   - Secondary color(s) (supporting colors)
+   - Accent color(s) (used for CTAs, highlights)
+   - Background colors (if notable, not just white/black)
+
+2. **Typography** (identify the font families you see):
+   - Heading font (used for titles, usually bolder/larger)
+   - Body font (used for paragraphs, usually more readable)
+   - Note the style: serif, sans-serif, display, monospace
+
+3. **Gradients** (if any are visible):
+   - Describe any gradient backgrounds or elements
+   - Provide the CSS gradient if you can determine the colors
+
+4. **Overall Brand Aesthetic**:
+   - Brief description of the visual style (modern, classic, playful, corporate, etc.)
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "colors": [
+    {"hex": "#XXXXXX", "role": "primary"},
+    {"hex": "#XXXXXX", "role": "secondary"},
+    {"hex": "#XXXXXX", "role": "accent"}
+  ],
+  "fonts": [
+    {"family": "Font Name", "category": "sans-serif", "usage": "heading"},
+    {"family": "Font Name", "category": "sans-serif", "usage": "body"}
+  ],
+  "gradients": [
+    {"css": "linear-gradient(90deg, #XXX, #XXX)", "type": "linear", "angle": 90}
+  ],
+  "aesthetic": "Brief description of the brand's visual style"
+}`;
+
+  try {
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: screenshotBase64,
+                  detail: 'high',
+                },
+              },
+            ],
+          },
+        ],
+        max_tokens: 1000,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Vision API error:', response.status, error);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content || '';
+
+    // Parse the JSON response (handle markdown code blocks if present)
+    const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/```\s*([\s\S]*?)\s*```/);
+    const jsonStr = jsonMatch ? jsonMatch[1] : content;
+    const parsed = JSON.parse(jsonStr.trim());
+
+    // Transform to our format
+    const colors = (parsed.colors || [])
+      .map((c: { hex: string }) => c.hex)
+      .filter((hex: string) => /^#[0-9A-Fa-f]{6}$/.test(hex));
+
+    const fonts: Font[] = (parsed.fonts || []).map((f: { family: string; category?: string; usage?: string }) => ({
+      family: parseFontFamily(f.family),
+      variants: ['400', '700'],
+      category: f.category || categorizeFont(f.family),
+      source: 'vision-detected',
+    }));
+
+    const gradients: ExtractedGradient[] = (parsed.gradients || []).map((g: { css: string; type?: string; angle?: number }) => ({
+      css: g.css,
+      type: (g.type as 'linear' | 'radial' | 'conic') || 'linear',
+      angle: g.angle,
+    }));
+
+    return {
+      colors,
+      gradients,
+      fonts,
+      description: parsed.aesthetic || '',
+    };
+  } catch (error) {
+    console.error('Vision extraction failed:', error);
+    return null;
+  }
+}
+
+// Extract all brand assets from a URL
+// Priority: Vision (screenshot) > CSS parsing > LLM interpretation
+export async function extractBrandAssets(url: string): Promise<ExtractionResult> {
+  // Start screenshot capture in parallel with HTML fetch
+  const [screenshotPromise, htmlResponse] = await Promise.all([
+    captureScreenshot(url),
+    fetch(url, { headers: { 'User-Agent': USER_AGENT } }),
+  ]);
+
+  if (!htmlResponse.ok) {
+    throw new Error(`Failed to fetch ${url}: ${htmlResponse.status}`);
+  }
+
+  const html = await htmlResponse.text();
   const $ = cheerio.load(html);
   const origin = new URL(url).origin;
 
-  // Extract content and logos from HTML (structural extraction)
+  // Extract content and logos from HTML (always needed)
   const [content, logos] = await Promise.all([
     extractContent($),
     extractLogos($, origin),
   ]);
 
-  // Collect CSS from inline styles and external stylesheets
-  const cssData = await collectCSSData($, origin);
+  // Try vision-based extraction first (most accurate)
+  const screenshot = await screenshotPromise;
+  let colors: string[] = [];
+  let gradients: ExtractedGradient[] = [];
+  let fonts: Font[] = [];
 
-  // Parse colors and gradients from collected CSS
-  const colors = parseColorsFromCSS(cssData);
-  const gradients = parseGradientsFromCSS(cssData);
-  const fonts = parseFontsFromCSS(cssData);
+  if (screenshot) {
+    console.log('Using vision-based extraction...');
+    const visionResult = await extractBrandAssetsWithVision(screenshot, url);
 
-  // If we have limited results, use LLM to interpret the CSS
-  const needsLLMHelp = colors.length < 3 || fonts.length < 1;
+    if (visionResult) {
+      colors = visionResult.colors;
+      gradients = visionResult.gradients;
+      fonts = visionResult.fonts;
+      console.log(`Vision extracted: ${colors.length} colors, ${fonts.length} fonts`);
+    }
+  }
 
-  if (needsLLMHelp && process.env.OPENAI_API_KEY) {
-    const llmResults = await interpretBrandAssetsWithLLM(cssData, content);
+  // Fallback to CSS parsing if vision didn't work or returned limited results
+  if (colors.length < 3 || fonts.length < 1) {
+    console.log('Falling back to CSS parsing...');
+    const cssData = await collectCSSData($, origin);
 
-    // Merge LLM results with parsed results
-    if (llmResults.suggestedColors.length > 0 && colors.length < 3) {
-      const validLLMColors = llmResults.suggestedColors
-        .map(c => parseColor(c))
-        .filter((c): c is Color => c !== null)
-        .map(c => c.hex);
-      colors.push(...validLLMColors.filter(c => !colors.includes(c)));
+    const cssColors = parseColorsFromCSS(cssData);
+    const cssGradients = parseGradientsFromCSS(cssData);
+    const cssFonts = parseFontsFromCSS(cssData);
+
+    // Merge with vision results (vision takes priority)
+    if (colors.length < 3) {
+      colors.push(...cssColors.filter(c => !colors.includes(c)));
+    }
+    if (gradients.length === 0) {
+      gradients = cssGradients;
+    }
+    if (fonts.length < 1) {
+      fonts.push(...cssFonts.filter(f => !fonts.some(existing => existing.family === f.family)));
     }
 
-    if (llmResults.suggestedFonts.length > 0 && fonts.length < 1) {
-      fonts.push(...llmResults.suggestedFonts.filter(f =>
-        !fonts.some(existing => existing.family === f.family)
-      ));
+    // If still limited, try LLM interpretation of CSS
+    if ((colors.length < 3 || fonts.length < 1) && process.env.OPENAI_API_KEY) {
+      console.log('Using LLM CSS interpretation...');
+      const llmResults = await interpretBrandAssetsWithLLM(cssData, content);
+
+      if (llmResults.suggestedColors.length > 0 && colors.length < 3) {
+        const validLLMColors = llmResults.suggestedColors
+          .map(c => parseColor(c))
+          .filter((c): c is Color => c !== null)
+          .map(c => c.hex);
+        colors.push(...validLLMColors.filter(c => !colors.includes(c)));
+      }
+
+      if (llmResults.suggestedFonts.length > 0 && fonts.length < 1) {
+        fonts.push(...llmResults.suggestedFonts.filter(f =>
+          !fonts.some(existing => existing.family === f.family)
+        ));
+      }
     }
   }
 
