@@ -42,11 +42,22 @@ export default function Home() {
       {/* Header */}
       <header className="border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-gray-900">Brand Kit Generator</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">Brand Kit Generator</span>
+            <div className="hidden sm:flex items-center gap-6">
+              <a
+                href="/api-docs"
+                className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1.5"
+              >
+                <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-bold">API</code>
+                Public API
+              </a>
+            </div>
           </div>
         </div>
       </header>
@@ -208,11 +219,23 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <p className="text-center text-sm text-gray-500">
-            Brand Kit Generator - Extract and generate comprehensive brand assets from any website
-          </p>
+      <footer className="border-t border-gray-100 mt-16 bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <p className="text-sm text-gray-500">
+                Brand Kit Generator - Extract and generate comprehensive brand assets from any website
+              </p>
+            </div>
+            <div className="flex md:justify-end gap-8">
+              <a href="/api-docs" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
+                Public API & Docs
+              </a>
+              <a href="https://github.com/NicoLafakis/brand-builder" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
+                GitHub
+              </a>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
