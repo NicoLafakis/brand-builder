@@ -1,124 +1,129 @@
 'use client';
 
-import type { Typography } from '@/lib/types/brand';
+import type { Typography, TypographyStyle } from '@/lib/types/brand';
 
 interface TypographyDisplayProps {
   typography: Typography;
 }
 
 export default function TypographyDisplay({ typography }: TypographyDisplayProps) {
+  const roles = [
+    { label: 'Headlines', font: typography.headlines, description: 'Establish personality and create impact' },
+    { label: 'Subheadings', font: typography.subheadings, description: 'Bridge headlines and body with clarity' },
+    { label: 'Body', font: typography.body, description: 'Maximize readability for sustained reading' },
+    { label: 'Code & Labels', font: typography.code, description: 'Technical precision for data and metadata' },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Font Families */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="p-6 bg-gray-50 rounded-xl">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Heading Font</span>
-            <span className="text-xs px-2 py-1 bg-gray-200 rounded-full text-gray-600">
-              {typography.headingFont.category}
-            </span>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {typography.headingFont.family}
-          </h2>
-          <p className="text-gray-600 text-lg">
-            The quick brown fox jumps over the lazy dog
-          </p>
-          <div className="mt-4 flex gap-2 flex-wrap">
-            {typography.headingFont.variants.map((variant) => (
-              <span
-                key={variant}
-                className="text-xs px-2 py-1 bg-white border border-gray-200 rounded"
-              >
-                {variant}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-6 bg-gray-50 rounded-xl">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Body Font</span>
-            <span className="text-xs px-2 py-1 bg-gray-200 rounded-full text-gray-600">
-              {typography.bodyFont.category}
-            </span>
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            {typography.bodyFont.family}
-          </h2>
-          <p className="text-gray-600">
-            The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump!
-          </p>
-          <div className="mt-4 flex gap-2 flex-wrap">
-            {typography.bodyFont.variants.map((variant) => (
-              <span
-                key={variant}
-                className="text-xs px-2 py-1 bg-white border border-gray-200 rounded"
-              >
-                {variant}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Type Scale */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Type Scale</h3>
-          <span className="text-sm text-gray-500">
-            {typography.scale.ratioName} ({typography.scale.ratio})
-          </span>
-        </div>
-        <div className="space-y-3">
-          {typography.scale.sizes.map((size) => (
-            <div
-              key={size.name}
-              className="flex items-baseline gap-4 py-3 border-b border-gray-100 last:border-b-0"
-            >
-              <span className="w-16 text-sm text-gray-400 font-mono">{size.name}</span>
-              <span className="w-20 text-sm text-gray-400">{size.size}px</span>
-              <span
-                className="text-gray-900 truncate"
-                style={{
-                  fontSize: `${Math.min(size.size, 48)}px`,
-                  lineHeight: size.lineHeight,
-                  letterSpacing: size.letterSpacing ? `${size.letterSpacing}em` : undefined,
-                }}
-              >
-                The quick brown fox
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Typography Guidelines */}
+    <div className="space-y-12">
+      {/* Font Roles */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 bg-blue-50 rounded-xl">
-          <span className="text-sm font-medium text-blue-600">Body Line Height</span>
-          <p className="text-2xl font-bold text-blue-900 mt-1">
-            {typography.recommendations.lineHeight.body}
-          </p>
+        {roles.map((role) => (
+          <div key={role.label} className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
+            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{role.label}</span>
+            <h3 className="text-xl font-bold text-gray-900 mt-2 mb-1 truncate" title={role.font.family}>
+              {role.font.family}
+            </h3>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">{role.description}</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {role.font.variants.map((v) => (
+                <span key={v} className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[10px] text-gray-600 font-medium">
+                  {v}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-12">
+        {/* Heading Hierarchy */}
+        <div>
+          <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm">H1</span>
+            Heading Hierarchy
+          </h3>
+          <div className="space-y-8">
+            {(Object.entries(typography.hierarchy) as [string, TypographyStyle][]).map(([tag, style]) => (
+              <div key={tag} className="group">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{tag}</span>
+                  <div className="h-px flex-1 bg-gray-100 group-hover:bg-blue-100 transition-colors" />
+                  <span className="text-[10px] font-mono text-gray-400">{style.fontSize}</span>
+                </div>
+                <div
+                  className="text-gray-900 leading-tight"
+                  style={{
+                    fontFamily: style.fontFamily,
+                    fontSize: style.fontSize,
+                    fontWeight: style.fontWeight,
+                    lineHeight: style.lineHeight,
+                    letterSpacing: style.letterSpacing,
+                    textTransform: style.textTransform
+                  }}
+                >
+                  The quick brown fox
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="p-4 bg-purple-50 rounded-xl">
-          <span className="text-sm font-medium text-purple-600">Heading Line Height</span>
-          <p className="text-2xl font-bold text-purple-900 mt-1">
-            {typography.recommendations.lineHeight.heading}
-          </p>
-        </div>
-        <div className="p-4 bg-green-50 rounded-xl">
-          <span className="text-sm font-medium text-green-600">Optimal Line Length</span>
-          <p className="text-2xl font-bold text-green-900 mt-1">
-            {typography.recommendations.maxLineLength.min}-{typography.recommendations.maxLineLength.max}
-          </p>
-          <span className="text-xs text-green-600">characters</span>
-        </div>
-        <div className="p-4 bg-amber-50 rounded-xl">
-          <span className="text-sm font-medium text-amber-600">All-Caps Tracking</span>
-          <p className="text-2xl font-bold text-amber-900 mt-1 font-mono">
-            {typography.recommendations.letterSpacing.allCaps}
-          </p>
+
+        {/* Body Variants */}
+        <div className="space-y-10">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-sm">Aa</span>
+              Body Text Variants
+            </h3>
+            <div className="space-y-8">
+              {(Object.entries(typography.bodyVariants) as [string, TypographyStyle][]).map(([name, style]) => (
+                <div key={name}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{name}</span>
+                    <div className="h-px flex-1 bg-gray-100" />
+                    <span className="text-[10px] font-mono text-gray-400">{style.fontSize}</span>
+                  </div>
+                  <p
+                    className="text-gray-700"
+                    style={{
+                      fontFamily: style.fontFamily,
+                      fontSize: style.fontSize,
+                      fontWeight: style.fontWeight,
+                      lineHeight: style.lineHeight
+                    }}
+                  >
+                    Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump!
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Guidelines */}
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 blur-3xl rounded-full -mr-16 -mt-16" />
+            <h3 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-6">Typography Guidelines</h3>
+            <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+              <div>
+                <span className="text-[10px] text-gray-400 block mb-1">Body Line Height</span>
+                <span className="text-xl font-bold">{typography.recommendations.lineHeight.body}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-gray-400 block mb-1">Heading Line Height</span>
+                <span className="text-xl font-bold">{typography.recommendations.lineHeight.heading}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-gray-400 block mb-1">Max Line Length</span>
+                <span className="text-xl font-bold">{typography.recommendations.maxLineLength.min}-{typography.recommendations.maxLineLength.max}</span>
+                <span className="text-[10px] ml-1 text-gray-500">chars</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-gray-400 block mb-1">All-Caps Tracking</span>
+                <span className="text-xl font-bold font-mono">{typography.recommendations.letterSpacing.allCaps}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

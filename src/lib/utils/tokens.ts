@@ -8,89 +8,65 @@ export function generateDesignTokens(
   const colorTokens: DesignTokens['color'] = {};
   const typographyTokens: DesignTokens['typography'] = {};
 
-  // Add primary colors
-  colors.primary.forEach((color, index) => {
-    const key = index === 0 ? 'primary' : `primary-${index + 1}`;
-    colorTokens[key] = {
+  // Add 3-Tier Colors
+  const tiers = ['primary', 'secondary', 'accent'] as const;
+  tiers.forEach(tier => {
+    const scale = colors[tier];
+    const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
+    shades.forEach(shade => {
+      colorTokens[`${tier}-${shade}`] = {
+        $type: 'color',
+        $value: { colorSpace: 'srgb', hex: scale[shade].hex },
+      };
+    });
+    // Add base alias
+    colorTokens[tier] = {
       $type: 'color',
-      $value: {
-        colorSpace: 'srgb',
-        hex: color.hex,
-      },
-      $description: color.usage || `Primary brand color ${index + 1}`,
+      $value: { colorSpace: 'srgb', hex: scale[500].hex },
+      $description: `Base ${tier} color`,
     };
   });
 
-  // Add secondary colors
-  colors.secondary.forEach((color, index) => {
-    colorTokens[`secondary-${index + 1}`] = {
-      $type: 'color',
-      $value: {
-        colorSpace: 'srgb',
-        hex: color.hex,
-      },
-      $description: color.usage || `Secondary color ${index + 1}`,
-    };
-  });
-
-  // Add accent colors
-  colors.accent.forEach((color, index) => {
-    colorTokens[`accent${index > 0 ? `-${index + 1}` : ''}`] = {
-      $type: 'color',
-      $value: {
-        colorSpace: 'srgb',
-        hex: color.hex,
-      },
-      $description: color.usage || 'Accent color for highlights',
-    };
-  });
-
-  // Add neutral colors
+  // Add Neutral
   colors.neutral.forEach((color, index) => {
     const step = (10 - index) * 100;
     colorTokens[`neutral-${step}`] = {
       $type: 'color',
+      $value: { colorSpace: 'srgb', hex: color.hex },
+    };
+  });
+
+  // Add Semantic
+  Object.entries(colors.semantic).forEach(([key, color]) => {
+    colorTokens[key] = {
+      $type: 'color',
+      $value: { colorSpace: 'srgb', hex: color.hex },
+    };
+  });
+
+  // Add Typography Hierarchy
+  Object.entries(typography.hierarchy).forEach(([tag, style]) => {
+    typographyTokens[tag] = {
+      $type: 'typography',
       $value: {
-        colorSpace: 'srgb',
-        hex: color.hex,
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        lineHeight: style.lineHeight,
+        letterSpacing: style.letterSpacing,
       },
     };
   });
 
-  // Add semantic colors
-  colorTokens['success'] = {
-    $type: 'color',
-    $value: { colorSpace: 'srgb', hex: colors.semantic.success.hex },
-    $description: 'Success state color',
-  };
-  colorTokens['error'] = {
-    $type: 'color',
-    $value: { colorSpace: 'srgb', hex: colors.semantic.error.hex },
-    $description: 'Error state color',
-  };
-  colorTokens['warning'] = {
-    $type: 'color',
-    $value: { colorSpace: 'srgb', hex: colors.semantic.warning.hex },
-    $description: 'Warning state color',
-  };
-  colorTokens['info'] = {
-    $type: 'color',
-    $value: { colorSpace: 'srgb', hex: colors.semantic.info.hex },
-    $description: 'Info state color',
-  };
-
-  // Add typography tokens
-  typography.scale.sizes.forEach(size => {
-    typographyTokens[size.name] = {
+  // Add Body Variants
+  Object.entries(typography.bodyVariants).forEach(([name, style]) => {
+    typographyTokens[`body-${name}`] = {
       $type: 'typography',
       $value: {
-        fontFamily: size.name.includes('xl') || size.name === 'lg'
-          ? typography.headingFont.family
-          : typography.bodyFont.family,
-        fontSize: `${size.size}px`,
-        fontWeight: size.name.includes('xl') ? '700' : '400',
-        lineHeight: String(size.lineHeight),
-        letterSpacing: size.letterSpacing ? `${size.letterSpacing}em` : undefined,
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        lineHeight: style.lineHeight,
       },
     };
   });
@@ -187,8 +163,10 @@ export function generateTailwindConfig(tokens: DesignTokens, typography: Typogra
           brand: colors,
         },
         fontFamily: {
-          heading: [typography.headingFont.family, typography.headingFont.category],
-          body: [typography.bodyFont.family, typography.bodyFont.category],
+          headlines: [typography.headlines.family, typography.headlines.category],
+          subheadings: [typography.subheadings.family, typography.subheadings.category],
+          body: [typography.body.family, typography.body.category],
+          code: [typography.code.family, typography.code.category],
         },
         spacing,
       },

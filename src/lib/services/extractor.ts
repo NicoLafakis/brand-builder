@@ -816,7 +816,7 @@ async function interpretBrandAssetsWithLLM(
   content: ExtractedContent
 ): Promise<LLMBrandInterpretation> {
   const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-  const MODEL = 'gpt-4.1-mini-2025-04-14';
+  const MODEL = 'gpt-4o-mini';
 
   // Prepare CSS summary for LLM
   const cssVariablesSummary = Array.from(cssData.cssVariables.entries())

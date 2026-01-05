@@ -6,6 +6,8 @@ import { buildGradientPalette } from '../utils/gradient';
 import { buildTypography } from '../utils/typography';
 import { buildBrandPersonalityEnhanced, generateBrandVoiceEnhanced } from '../utils/personality';
 import { generateDesignTokens } from '../utils/tokens';
+import { buildButtonStyles } from '../utils/buttons';
+import { buildHeroPresets } from '../utils/heroes';
 import { isOpenAIAvailable } from './openai';
 
 export type ProgressCallback = (progress: ExtractionProgress) => void;
@@ -60,20 +62,17 @@ export async function buildBrandKit(
 
   progress('extracting-fonts', 30, 'Analyzing typography...');
 
-  // Determine AI availability for status messages
-  const aiStatus = isOpenAIAvailable() ? 'with AI' : 'with keyword matching';
-
   // Build color palette
   progress('generating-palette', 50, 'Generating color palette and harmonies...');
   const colorPalette = buildColorPalette(extractedData.colors);
 
-  // Generate color harmonies from primary color
-  const harmonies = colorPalette.primary[0]
-    ? generateHarmonies(colorPalette.primary[0])
+  // Generate color harmonies from primary base color (500)
+  const harmonies = colorPalette.primary[500]
+    ? generateHarmonies(colorPalette.primary[500])
     : [];
 
   // Build gradient palette (extracted + AI-generated)
-  progress('generating-palette', 55, `Generating gradient swatches ${aiStatus}...`);
+  progress('generating-palette', 55, 'Generating gradient swatches...');
   const gradients = await buildGradientPalette(
     extractedData.gradients,
     colorPalette,
@@ -85,15 +84,23 @@ export async function buildBrandKit(
   const typography = buildTypography(extractedData.fonts);
 
   // Analyze brand personality (uses AI when available for intelligent analysis)
-  progress('analyzing-personality', 70, `Analyzing brand personality ${aiStatus}...`);
+  progress('analyzing-personality', 70, 'Analyzing brand personality...');
   const personality = await buildBrandPersonalityEnhanced(extractedData.content);
 
   // Generate brand voice guidelines (uses AI when available)
-  progress('analyzing-personality', 80, `Generating brand voice guidelines ${aiStatus}...`);
+  progress('analyzing-personality', 80, 'Generating brand voice guidelines...');
   const voice = await generateBrandVoiceEnhanced(personality, extractedData.content);
 
+  // Generate button styles
+  progress('generating-tokens', 82, 'Creating button styles...');
+  const buttons = buildButtonStyles(colorPalette);
+
+  // Generate hero presets
+  progress('generating-tokens', 85, 'Creating hero/component presets...');
+  const heroes = buildHeroPresets(colorPalette, typography);
+
   // Generate design tokens
-  progress('generating-tokens', 85, 'Generating design tokens...');
+  progress('generating-tokens', 88, 'Generating design tokens...');
   const tokens = generateDesignTokens(colorPalette, typography);
 
   // Compile final brand kit
@@ -108,6 +115,8 @@ export async function buildBrandKit(
     gradients,
     harmonies,
     typography,
+    buttons,
+    heroes,
     logos: extractedData.logos,
     personality,
     voice,

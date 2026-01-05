@@ -132,99 +132,106 @@ export function generateSemanticColors(): ColorPalette['semantic'] {
   };
 }
 
-// Extract dominant colors and create a full palette
+// Generate a full shade scale (50-950) from a base color
+export function generateShadeScale(baseColor: Color): ColorScale {
+  const base = chroma(baseColor.hex);
+
+  // HSL adjustment typical values from the methodology
+  const adjustments = {
+    50: { l: 0.97, s: 0.7 },   // L+52%, S-30% approx
+    100: { l: 0.93, s: 0.8 },
+    200: { l: 0.85, s: 0.85 }, // L+40%, S-15%
+    300: { l: 0.70, s: 0.9 },
+    400: { l: 0.55, s: 0.95 }, // L+10%, S-5%
+    500: { l: 0.45, s: 1.0 },  // Base
+    600: { l: 0.35, s: 1.05 }, // L-10%, S+5%
+    700: { l: 0.25, s: 1.08 },
+    800: { l: 0.18, s: 1.10 }, // L-27%, S+10%
+    900: { l: 0.12, s: 1.12 },
+    950: { l: 0.06, s: 1.15 }, // L-39%, S+15%
+  };
+
+  const scale: any = {};
+  const [h, s, l] = base.hsl();
+
+  Object.entries(adjustments).forEach(([shade, adj]) => {
+    // Progressive shift from base
+    const finalS = Math.min(1, s * adj.s);
+    const finalL = adj.l;
+    const c = chroma.hsl(h || 0, finalS, finalL);
+    scale[shade] = parseColor(c.hex())!;
+  });
+
+  return {
+    ...scale,
+    base: baseColor,
+  } as ColorScale;
+}
+
+// Suggest primary, secondary, and accent colors from extracted colors
 export function buildColorPalette(extractedColors: string[]): ColorPalette {
-  // Parse and filter valid colors
   const parsedColors = extractedColors
     .map(c => parseColor(c))
     .filter((c): c is Color => c !== null)
-    .filter(c => {
-      // Filter out near-white and near-black colors for primary/secondary
-      return c.hsl.l > 10 && c.hsl.l < 90;
-    });
+    .filter(c => c.hsl.l > 10 && c.hsl.l < 90);
 
-  // Remove duplicates by clustering similar colors
   const uniqueColors = clusterColors(parsedColors);
-
-  // Sort by saturation (most saturated first for primary)
   const sortedBySaturation = [...uniqueColors].sort((a, b) => b.hsl.s - a.hsl.s);
 
-  // Assign primary colors (top 1-3 most saturated)
-  const primary = sortedBySaturation.slice(0, Math.min(3, sortedBySaturation.length));
-  primary.forEach((c, i) => {
-    c.name = i === 0 ? 'Primary' : `Primary ${i + 1}`;
-    c.usage = i === 0 ? 'Main brand color' : 'Supporting brand color';
-  });
+  // 1. Primary (Trust Foundation) - Highest saturation or most frequent
+  const primaryBase = sortedBySaturation[0] || parseColor('#1e3a8a')!; // Default Navy
+  primaryBase.name = 'Primary Base';
+  primaryBase.usage = 'Brand foundation, trust';
 
-  // Generate secondary colors from harmony
-  const secondary: Color[] = [];
-  if (primary[0]) {
-    const complementary = generateHarmonies(primary[0]).find(h => h.type === 'analogous');
-    if (complementary) {
-      complementary.colors.forEach((c, i) => {
-        if (c.hex !== primary[0].hex) {
-          c.name = `Secondary ${i}`;
-          c.usage = 'Complementary color';
-          secondary.push(c);
-        }
-      });
-    }
-  }
+  // 2. Secondary (Energy) - Next distinct color
+  const secondaryBase = sortedBySaturation.find(c => chroma.deltaE(c.hex, primaryBase.hex) > 30)
+    || parseColor('#028393')!; // Default Teal
+  secondaryBase.name = 'Secondary Base';
+  secondaryBase.usage = 'Energy, differentiation';
 
-  // Generate accent colors (high saturation variants)
-  const accent: Color[] = [];
-  if (primary[0]) {
-    const accentColor = chroma(primary[0].hex).saturate(1).brighten(0.5);
-    const parsed = parseColor(accentColor.hex());
-    if (parsed) {
-      parsed.name = 'Accent';
-      parsed.usage = 'Highlight and call-to-action';
-      accent.push(parsed);
-    }
-  }
+  // 3. Accent (Action) - High energy color
+  const accentBase = sortedBySaturation.find(c =>
+    chroma.deltaE(c.hex, primaryBase.hex) > 40 &&
+    chroma.deltaE(c.hex, secondaryBase.hex) > 30
+  ) || parseColor('#f65625')!; // Default Orange/Coral
+  accentBase.name = 'Accent Base';
+  accentBase.usage = 'CTAs, urgency, highlights';
 
-  // Generate neutral scale based on primary color
-  const neutral = primary[0]
-    ? generateNeutralScale(primary[0])
-    : generateNeutralScale(parseColor('#6b7280')!);
+  // Utility colors
+  const utility = [
+    parseColor('#faaa68')!, // Peach
+    parseColor('#98c1d9')!, // Light Blue
+    parseColor('#3d5a80')!, // Slate
+  ];
 
   return {
-    primary,
-    secondary: secondary.slice(0, 4),
-    accent,
-    neutral,
+    primary: generateShadeScale(primaryBase),
+    secondary: generateShadeScale(secondaryBase),
+    accent: generateShadeScale(accentBase),
+    neutral: generateNeutralScale(primaryBase),
+    utility,
     semantic: generateSemanticColors(),
   };
 }
 
 // Cluster similar colors together
-function clusterColors(colors: Color[], threshold: number = 30): Color[] {
+function clusterColors(colors: Color[], threshold: number = 25): Color[] {
   const clusters: Color[][] = [];
 
   for (const color of colors) {
     let addedToCluster = false;
-
     for (const cluster of clusters) {
-      const representative = cluster[0];
-      const distance = chroma.deltaE(color.hex, representative.hex);
-
-      if (distance < threshold) {
+      if (chroma.deltaE(color.hex, cluster[0].hex) < threshold) {
         cluster.push(color);
         addedToCluster = true;
         break;
       }
     }
-
-    if (!addedToCluster) {
-      clusters.push([color]);
-    }
+    if (!addedToCluster) clusters.push([color]);
   }
 
-  // Return the most saturated color from each cluster
   return clusters.map(cluster =>
-    cluster.reduce((best, current) =>
-      current.hsl.s > best.hsl.s ? current : best
-    )
+    cluster.reduce((best, current) => current.hsl.s > best.hsl.s ? current : best)
   );
 }
 
@@ -232,11 +239,10 @@ function clusterColors(colors: Color[], threshold: number = 30): Color[] {
 export function getAccessibleTextColor(backgroundColor: string): string {
   const whiteContrast = chroma.contrast(backgroundColor, '#ffffff');
   const blackContrast = chroma.contrast(backgroundColor, '#000000');
-
   return whiteContrast > blackContrast ? '#ffffff' : '#000000';
 }
 
-// Generate tints and shades for a color
+// Generate tints and shades for a color (Legacy support if needed)
 export function generateTintsAndShades(color: Color, steps: number = 5): Color[] {
   const scale = chroma.scale(['#000000', color.hex, '#ffffff']).mode('lab').colors(steps * 2 + 1);
   return scale.map(c => parseColor(c)!);

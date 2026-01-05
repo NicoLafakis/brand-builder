@@ -8,11 +8,7 @@ import {
   Image,
   Code,
   Download,
-  Loader2,
-  FileJson,
-  FileCode,
   Blend,
-  Info,
 } from 'lucide-react';
 import type { BrandKit } from '@/lib/types/brand';
 import ColorPalette from './ColorPalette';
@@ -20,19 +16,25 @@ import GradientDisplay from './GradientDisplay';
 import TypographyDisplay from './TypographyDisplay';
 import BrandVoiceDisplay from './BrandVoiceDisplay';
 import LogoDisplay from './LogoDisplay';
+import ButtonDisplay from './ButtonDisplay';
+import HeroDisplay from './HeroDisplay';
 import { generateCSSVariables, generateTokensJSON } from '@/lib/utils/tokens';
 
 interface BrandKitDisplayProps {
   brandKit: BrandKit;
 }
 
-type TabId = 'colors' | 'gradients' | 'typography' | 'voice' | 'logos' | 'tokens';
+type TabId = 'colors' | 'gradients' | 'typography' | 'buttons' | 'heroes' | 'voice' | 'logos' | 'tokens';
 
 const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: 'colors', label: 'Colors', icon: <Palette className="w-4 h-4" /> },
   { id: 'gradients', label: 'Gradients', icon: <Blend className="w-4 h-4" /> },
   { id: 'typography', label: 'Typography', icon: <Type className="w-4 h-4" /> },
+  { id: 'buttons', label: 'Buttons', icon: <Blend className="w-4 h-4" /> },
+  // eslint-disable-next-line @next/next/no-img-element
+  { id: 'heroes', label: 'Hero Presets', icon: <Image className="w-4 h-4" /> },
   { id: 'voice', label: 'Brand Voice', icon: <MessageSquare className="w-4 h-4" /> },
+  // eslint-disable-next-line @next/next/no-img-element
   { id: 'logos', label: 'Logos', icon: <Image className="w-4 h-4" /> },
   { id: 'tokens', label: 'Design Tokens', icon: <Code className="w-4 h-4" /> },
 ];
@@ -108,11 +110,10 @@ export default function BrandKitDisplay({ brandKit }: BrandKitDisplayProps) {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${activeTab === tab.id
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
               {tab.icon}
               {tab.label}
@@ -126,6 +127,8 @@ export default function BrandKitDisplay({ brandKit }: BrandKitDisplayProps) {
         {activeTab === 'colors' && <ColorPalette colors={brandKit.colors} />}
         {activeTab === 'gradients' && <GradientDisplay gradients={brandKit.gradients} />}
         {activeTab === 'typography' && <TypographyDisplay typography={brandKit.typography} />}
+        {activeTab === 'buttons' && <ButtonDisplay buttons={brandKit.buttons} />}
+        {activeTab === 'heroes' && <HeroDisplay heroes={brandKit.heroes} />}
         {activeTab === 'voice' && (
           <BrandVoiceDisplay
             personality={brandKit.personality}
@@ -175,22 +178,20 @@ export default function BrandKitDisplay({ brandKit }: BrandKitDisplayProps) {
             <div className="flex gap-2">
               <button
                 onClick={() => setTokenView('json')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  tokenView === 'json'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tokenView === 'json'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
               >
                 <FileJson className="w-4 h-4" />
                 JSON Tokens
               </button>
               <button
                 onClick={() => setTokenView('css')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  tokenView === 'css'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tokenView === 'css'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
               >
                 <FileCode className="w-4 h-4" />
                 CSS Variables

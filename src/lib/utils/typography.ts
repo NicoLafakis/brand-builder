@@ -19,55 +19,55 @@ export const FONT_PAIRINGS: Array<{
   style: string;
   description: string;
 }> = [
-  {
-    heading: 'Inter',
-    body: 'Inter',
-    style: 'Modern Tech',
-    description: 'Clean, professional, excellent readability',
-  },
-  {
-    heading: 'Playfair Display',
-    body: 'Source Sans Pro',
-    style: 'Elegant Editorial',
-    description: 'Sophisticated serif headlines with clean body text',
-  },
-  {
-    heading: 'Montserrat',
-    body: 'Open Sans',
-    style: 'Contemporary',
-    description: 'Bold geometric headers with friendly body text',
-  },
-  {
-    heading: 'Roboto',
-    body: 'Roboto',
-    style: 'Material Design',
-    description: 'Google\'s system font, highly readable',
-  },
-  {
-    heading: 'Poppins',
-    body: 'Lato',
-    style: 'Friendly Modern',
-    description: 'Geometric headings with humanist body',
-  },
-  {
-    heading: 'DM Sans',
-    body: 'Nunito',
-    style: 'Friendly Approachable',
-    description: 'Soft, welcoming appearance',
-  },
-  {
-    heading: 'Manrope',
-    body: 'Inter',
-    style: 'Tech Modern',
-    description: 'Contemporary tech aesthetic',
-  },
-  {
-    heading: 'Merriweather',
-    body: 'Source Sans Pro',
-    style: 'Classic Editorial',
-    description: 'Traditional yet modern combination',
-  },
-];
+    {
+      heading: 'Inter',
+      body: 'Inter',
+      style: 'Modern Tech',
+      description: 'Clean, professional, excellent readability',
+    },
+    {
+      heading: 'Playfair Display',
+      body: 'Source Sans Pro',
+      style: 'Elegant Editorial',
+      description: 'Sophisticated serif headlines with clean body text',
+    },
+    {
+      heading: 'Montserrat',
+      body: 'Open Sans',
+      style: 'Contemporary',
+      description: 'Bold geometric headers with friendly body text',
+    },
+    {
+      heading: 'Roboto',
+      body: 'Roboto',
+      style: 'Material Design',
+      description: 'Google\'s system font, highly readable',
+    },
+    {
+      heading: 'Poppins',
+      body: 'Lato',
+      style: 'Friendly Modern',
+      description: 'Geometric headings with humanist body',
+    },
+    {
+      heading: 'DM Sans',
+      body: 'Nunito',
+      style: 'Friendly Approachable',
+      description: 'Soft, welcoming appearance',
+    },
+    {
+      heading: 'Manrope',
+      body: 'Inter',
+      style: 'Tech Modern',
+      description: 'Contemporary tech aesthetic',
+    },
+    {
+      heading: 'Merriweather',
+      body: 'Source Sans Pro',
+      style: 'Classic Editorial',
+      description: 'Traditional yet modern combination',
+    },
+  ];
 
 // Generate a type scale based on base size and ratio
 export function generateTypeScale(
@@ -202,38 +202,61 @@ export function suggestFontPairing(detectedFonts: Font[]): {
   };
 }
 
-// Build complete typography system
-export function buildTypography(
-  detectedFonts: Font[],
-  scaleRatio: keyof typeof SCALE_RATIOS = 'major-third'
-): Typography {
-  const primaryFont = detectedFonts[0] || {
-    family: 'Inter',
-    variants: ['400', '500', '600', '700'],
+// Build complete typography system following the 4-font hierarchy
+export function buildTypography(detectedFonts: Font[]): Typography {
+  const headlines = detectedFonts.find(f => f.category === 'serif' || f.category === 'display') || {
+    family: 'Palatino Linotype',
+    variants: ['400', '700'],
+    category: 'serif' as const,
+  };
+
+  const subheadings = detectedFonts.find(f => f.category === 'sans-serif' && f.family !== headlines.family) || {
+    family: 'Montserrat',
+    variants: ['500', '600'],
     category: 'sans-serif' as const,
   };
 
-  const bodyFont = detectedFonts[1] || primaryFont;
+  const body = detectedFonts.find(f => f.category === 'sans-serif' && f.family !== subheadings.family) || {
+    family: 'PT Sans',
+    variants: ['400', '700'],
+    category: 'sans-serif' as const,
+  };
 
-  const pairing = suggestFontPairing(detectedFonts);
-  const scale = generateTypeScale(16, scaleRatio);
+  const code = detectedFonts.find(f => f.category === 'monospace') || {
+    family: 'IBM Plex Mono',
+    variants: ['400'],
+    category: 'monospace' as const,
+  };
+
+  // Define Heading Hierarchy (H1-H6)
+  const hierarchy: any = {
+    h1: { fontFamily: headlines.family, fontSize: '4.5rem', fontWeight: '400', lineHeight: '1.1', letterSpacing: '-0.02em' },
+    h2: { fontFamily: headlines.family, fontSize: '3rem', fontWeight: '400', lineHeight: '1.2' },
+    h3: { fontFamily: subheadings.family, fontSize: '1.875rem', fontWeight: '600', lineHeight: '1.3' },
+    h4: { fontFamily: subheadings.family, fontSize: '1.5rem', fontWeight: '600', lineHeight: '1.4' },
+    h5: { fontFamily: subheadings.family, fontSize: '1.25rem', fontWeight: '500', lineHeight: '1.4' },
+    h6: { fontFamily: subheadings.family, fontSize: '1rem', fontWeight: '500', lineHeight: '1.5', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  };
+
+  // Define Body Variants
+  const bodyVariants: any = {
+    lead: { fontFamily: body.family, fontSize: '1.25rem', fontWeight: '400', lineHeight: '1.6' },
+    body: { fontFamily: body.family, fontSize: '1rem', fontWeight: '400', lineHeight: '1.7' },
+    small: { fontFamily: body.family, fontSize: '0.875rem', fontWeight: '400', lineHeight: '1.6' },
+    caption: { fontFamily: body.family, fontSize: '0.75rem', fontWeight: '400', lineHeight: '1.5' },
+  };
 
   return {
-    headingFont: {
-      family: primaryFont.family,
-      variants: primaryFont.variants || ['400', '500', '600', '700'],
-      category: primaryFont.category || categorizeFont(primaryFont.family),
-    },
-    bodyFont: {
-      family: bodyFont.family,
-      variants: bodyFont.variants || ['400', '500', '600'],
-      category: bodyFont.category || categorizeFont(bodyFont.family),
-    },
-    scale,
+    headlines,
+    subheadings,
+    body,
+    code,
+    hierarchy,
+    bodyVariants,
     recommendations: {
-      lineHeight: { body: 1.6, heading: 1.2 },
+      lineHeight: { body: 1.6, heading: 1.1 },
       maxLineLength: { min: 50, max: 75 },
-      letterSpacing: { allCaps: '+0.1em', large: '-0.02em' },
+      letterSpacing: { allCaps: '0.05em', large: '-0.02em' },
     },
   };
 }

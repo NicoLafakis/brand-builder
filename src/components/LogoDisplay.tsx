@@ -56,9 +56,8 @@ function LogoCard({ logo }: { logo: Logo }) {
           <img
             src={logo.url}
             alt={`${logo.type} logo`}
-            className={`max-w-full max-h-full object-contain transition-opacity ${
-              imageLoaded ? 'opacity-100' : 'opacity-0'
-            }`}
+            className={`max-w-full max-h-full object-contain transition-opacity ${imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
             onLoad={() => setImageLoaded(true)}
             onError={() => setImageError(true)}
           />
@@ -104,7 +103,7 @@ export default function LogoDisplay({ logos }: LogoDisplayProps) {
   if (validLogos.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-xl">
-        <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+        <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" aria-hidden="true" />
         <p className="text-gray-500">No logos were detected on this website</p>
         <p className="text-sm text-gray-400 mt-2">
           Try checking the website manually for logo files

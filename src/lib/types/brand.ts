@@ -25,11 +25,27 @@ export interface GradientPalette {
   suggested: Gradient[];
 }
 
+export interface ColorScale {
+  50: Color;
+  100: Color;
+  200: Color;
+  300: Color;
+  400: Color;
+  500: Color;
+  600: Color;
+  700: Color;
+  800: Color;
+  900: Color;
+  950: Color;
+  base: Color;
+}
+
 export interface ColorPalette {
-  primary: Color[];
-  secondary: Color[];
-  accent: Color[];
+  primary: ColorScale;
+  secondary: ColorScale;
+  accent: ColorScale;
   neutral: Color[];
+  utility: Color[];
   semantic: {
     success: Color;
     error: Color;
@@ -69,10 +85,38 @@ export interface TypographyScale {
   }[];
 }
 
+export interface TypographyHierarchy {
+  h1: TypographyStyle;
+  h2: TypographyStyle;
+  h3: TypographyStyle;
+  h4: TypographyStyle;
+  h5: TypographyStyle;
+  h6: TypographyStyle;
+}
+
+export interface TypographyStyle {
+  fontFamily: string;
+  fontSize: string;
+  fontWeight: string;
+  lineHeight: string;
+  letterSpacing?: string;
+  textTransform?: 'uppercase' | 'lowercase' | 'capitalize' | 'none';
+}
+
+export interface BodyVariants {
+  lead: TypographyStyle;
+  body: TypographyStyle;
+  small: TypographyStyle;
+  caption: TypographyStyle;
+}
+
 export interface Typography {
-  headingFont: Font;
-  bodyFont: Font;
-  scale: TypographyScale;
+  headlines: Font;
+  subheadings: Font;
+  body: Font;
+  code: Font;
+  hierarchy: TypographyHierarchy;
+  bodyVariants: BodyVariants;
   recommendations: {
     lineHeight: { body: number; heading: number };
     maxLineLength: { min: number; max: number };
@@ -140,6 +184,39 @@ export interface ExtractedContent {
   metaTags: Record<string, string>;
 }
 
+export interface ButtonStyle {
+  label: string;
+  background: string;
+  hover: string;
+  text: string;
+  borderRadius: string;
+  padding: string;
+  fontWeight: string;
+  border?: string;
+}
+
+export interface ButtonStyles {
+  primary: ButtonStyle;
+  secondary: ButtonStyle;
+  solid: ButtonStyle;
+  ghost: ButtonStyle;
+}
+
+export interface HeroPreset {
+  id: string;
+  name: string;
+  mood: string[];
+  concept: string;
+  specs: {
+    background: string;
+    layout: string;
+    typography: string;
+    animation: string;
+    ctas: string;
+  };
+  bestFor: string;
+}
+
 export interface DesignTokens {
   color: Record<string, {
     $type: 'color';
@@ -177,6 +254,8 @@ export interface BrandKit {
   gradients: GradientPalette;
   harmonies: ColorHarmony[];
   typography: Typography;
+  buttons: ButtonStyles;
+  heroes: HeroPreset[];
   logos: Logo[];
   personality: BrandPersonality;
   voice: BrandVoice;
@@ -186,8 +265,8 @@ export interface BrandKit {
 
 export interface ExtractionProgress {
   stage: 'initializing' | 'extracting-colors' | 'extracting-fonts' | 'extracting-logos' |
-         'extracting-content' | 'analyzing-personality' | 'generating-palette' |
-         'generating-tokens' | 'complete' | 'error';
+  'extracting-content' | 'analyzing-personality' | 'generating-palette' |
+  'generating-tokens' | 'complete' | 'error';
   progress: number;
   message: string;
 }
