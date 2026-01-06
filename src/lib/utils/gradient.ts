@@ -251,7 +251,7 @@ Neutral Colors: ${colorPalette.neutral.slice(0, 3).map(c => c.hex).join(', ')}
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-mini-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: GRADIENT_AI_CONTEXT },
           {
