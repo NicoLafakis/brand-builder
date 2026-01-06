@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import type { BrandKit } from '../types/brand';
+import type { BrandKit, ColorScale, Color } from '../types/brand';
 import { generateBrandGuidelinesPDF } from './pdf-generator';
 import {
   generateCSSVariables,
@@ -7,6 +7,12 @@ import {
   generateTailwindConfig,
   generateTokensJSON,
 } from '../utils/tokens';
+
+// Helper to convert ColorScale object to array of colors with shade names
+function colorScaleToArray(scale: ColorScale): (Color & { shade: number })[] {
+  const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
+  return shades.map(shade => ({ ...scale[shade], shade }));
+}
 
 // Generate complete brand kit ZIP file
 export async function generateBrandKitZip(brandKit: BrandKit): Promise<Blob> {
@@ -79,6 +85,10 @@ export async function generateBrandKitZip(brandKit: BrandKit): Promise<Blob> {
 
 // Generate text version of guidelines
 function generateTextGuidelines(brandKit: BrandKit): string {
+  const primaryColors = colorScaleToArray(brandKit.colors.primary);
+  const secondaryColors = colorScaleToArray(brandKit.colors.secondary);
+  const accentColors = colorScaleToArray(brandKit.colors.accent);
+
   return `
 ${brandKit.name} BRAND GUIDELINES
 ${'='.repeat(50)}
@@ -90,13 +100,13 @@ COLOR PALETTE
 -------------
 
 Primary Colors:
-${brandKit.colors.primary.map(c => `  ${c.name || 'Primary'}: ${c.hex}`).join('\n')}
+${primaryColors.map(c => `  ${c.name || `Primary ${c.shade}`}: ${c.hex}`).join('\n')}
 
 Secondary Colors:
-${brandKit.colors.secondary.map(c => `  ${c.name || 'Secondary'}: ${c.hex}`).join('\n')}
+${secondaryColors.map(c => `  ${c.name || `Secondary ${c.shade}`}: ${c.hex}`).join('\n')}
 
 Accent Colors:
-${brandKit.colors.accent.map(c => `  ${c.name || 'Accent'}: ${c.hex}`).join('\n')}
+${accentColors.map(c => `  ${c.name || `Accent ${c.shade}`}: ${c.hex}`).join('\n')}
 
 Semantic Colors:
   Success: ${brandKit.colors.semantic.success.hex}
@@ -108,13 +118,8 @@ Semantic Colors:
 TYPOGRAPHY
 ----------
 
-Heading Font: ${brandKit.typography.headingFont.family}
-Body Font: ${brandKit.typography.bodyFont.family}
-Scale Ratio: ${brandKit.typography.scale.ratioName} (${brandKit.typography.scale.ratio})
-
-Type Scale:
-${brandKit.typography.scale.sizes.map(s => `  ${s.name}: ${s.size}px / ${s.lineHeight}`).join('\n')}
-
+Heading Font: ${brandKit.typography.headlines.family}
+Body Font: ${brandKit.typography.body.family}
 
 BRAND VOICE
 -----------
@@ -169,23 +174,27 @@ ${logo.width ? `- Dimensions: ${logo.width}x${logo.height}` : ''}
 
 // Generate color swatches markdown
 function generateColorSwatches(brandKit: BrandKit): string {
-  const formatColor = (color: typeof brandKit.colors.primary[0], name: string) => `
+  const formatColor = (color: Color, name: string) => `
 ### ${name}
 - **HEX**: ${color.hex}
 - **RGB**: rgb(${color.rgb.r}, ${color.rgb.g}, ${color.rgb.b})
 - **HSL**: hsl(${color.hsl.h}, ${color.hsl.s}%, ${color.hsl.l}%)
 `;
 
+  const primaryColors = colorScaleToArray(brandKit.colors.primary);
+  const secondaryColors = colorScaleToArray(brandKit.colors.secondary);
+  const accentColors = colorScaleToArray(brandKit.colors.accent);
+
   return `# Color Swatches
 
 ## Primary Colors
-${brandKit.colors.primary.map((c, i) => formatColor(c, c.name || `Primary ${i + 1}`)).join('\n')}
+${primaryColors.map(c => formatColor(c, c.name || `Primary ${c.shade}`)).join('\n')}
 
 ## Secondary Colors
-${brandKit.colors.secondary.map((c, i) => formatColor(c, c.name || `Secondary ${i + 1}`)).join('\n')}
+${secondaryColors.map(c => formatColor(c, c.name || `Secondary ${c.shade}`)).join('\n')}
 
 ## Accent Colors
-${brandKit.colors.accent.map((c, i) => formatColor(c, c.name || `Accent ${i + 1}`)).join('\n')}
+${accentColors.map(c => formatColor(c, c.name || `Accent ${c.shade}`)).join('\n')}
 
 ## Semantic Colors
 ${formatColor(brandKit.colors.semantic.success, 'Success')}
@@ -205,24 +214,14 @@ function generateTypographyDoc(brandKit: BrandKit): string {
 ## Font Families
 
 ### Heading Font
-- **Family**: ${brandKit.typography.headingFont.family}
-- **Category**: ${brandKit.typography.headingFont.category}
-- **Weights**: ${brandKit.typography.headingFont.variants.join(', ')}
+- **Family**: ${brandKit.typography.headlines.family}
+- **Category**: ${brandKit.typography.headlines.category}
+- **Weights**: ${brandKit.typography.headlines.variants.join(', ')}
 
 ### Body Font
-- **Family**: ${brandKit.typography.bodyFont.family}
-- **Category**: ${brandKit.typography.bodyFont.category}
-- **Weights**: ${brandKit.typography.bodyFont.variants.join(', ')}
-
-## Type Scale
-
-Using **${brandKit.typography.scale.ratioName}** ratio (${brandKit.typography.scale.ratio})
-
-| Name | Size | Line Height | Letter Spacing |
-|------|------|-------------|----------------|
-${brandKit.typography.scale.sizes.map(s =>
-  `| ${s.name} | ${s.size}px | ${s.lineHeight} | ${s.letterSpacing ? `${s.letterSpacing}em` : '-'} |`
-).join('\n')}
+- **Family**: ${brandKit.typography.body.family}
+- **Category**: ${brandKit.typography.body.category}
+- **Weights**: ${brandKit.typography.body.variants.join(', ')}
 
 ## Guidelines
 
@@ -237,13 +236,13 @@ ${brandKit.typography.scale.sizes.map(s =>
 \`\`\`css
 /* Heading Styles */
 h1, h2, h3 {
-  font-family: "${brandKit.typography.headingFont.family}", ${brandKit.typography.headingFont.category};
+  font-family: "${brandKit.typography.headlines.family}", ${brandKit.typography.headlines.category};
   line-height: ${brandKit.typography.recommendations.lineHeight.heading};
 }
 
 /* Body Styles */
 body, p {
-  font-family: "${brandKit.typography.bodyFont.family}", ${brandKit.typography.bodyFont.category};
+  font-family: "${brandKit.typography.body.family}", ${brandKit.typography.body.category};
   line-height: ${brandKit.typography.recommendations.lineHeight.body};
 }
 \`\`\`
@@ -357,9 +356,9 @@ Import \`tokens/tokens.json\` into your design token management system.
 
 ## Brand Overview
 
-- **Primary Color**: ${brandKit.colors.primary[0]?.hex || 'N/A'}
-- **Heading Font**: ${brandKit.typography.headingFont.family}
-- **Body Font**: ${brandKit.typography.bodyFont.family}
+- **Primary Color**: ${brandKit.colors.primary.base?.hex || brandKit.colors.primary[500]?.hex || 'N/A'}
+- **Heading Font**: ${brandKit.typography.headlines.family}
+- **Body Font**: ${brandKit.typography.body.family}
 - **Brand Archetype**: ${brandKit.personality.archetype.primary}
 
 ## Generated by Brand Kit Generator

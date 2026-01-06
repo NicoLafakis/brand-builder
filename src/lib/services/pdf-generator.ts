@@ -7,8 +7,14 @@ import {
   StyleSheet,
   renderToBuffer,
 } from '@react-pdf/renderer';
-import type { BrandKit } from '../types/brand';
+import type { BrandKit, ColorScale, Color } from '../types/brand';
 import { getAccessibleTextColor } from '../utils/color';
+
+// Helper to convert ColorScale object to array of colors with shade names
+function colorScaleToArray(scale: ColorScale): (Color & { shade: number })[] {
+  const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
+  return shades.map(shade => ({ ...scale[shade], shade }));
+}
 
 // PDF Styles
 const styles = StyleSheet.create({
@@ -166,7 +172,9 @@ const styles = StyleSheet.create({
 
 // Create the PDF document
 function createBrandGuidelinesPDF(brandKit: BrandKit) {
-  const primaryColor = brandKit.colors.primary[0]?.hex || '#3b82f6';
+  const primaryColor = brandKit.colors.primary.base?.hex || brandKit.colors.primary[500]?.hex || '#3b82f6';
+  const primaryColors = colorScaleToArray(brandKit.colors.primary);
+  const secondaryColors = colorScaleToArray(brandKit.colors.secondary);
 
   return React.createElement(
     Document,
@@ -222,17 +230,17 @@ function createBrandGuidelinesPDF(brandKit: BrandKit) {
         React.createElement(
           View,
           { style: styles.colorRow },
-          ...brandKit.colors.primary.map((color, i) =>
+          ...primaryColors.slice(0, 6).map((color) =>
             React.createElement(
               View,
               {
-                key: `primary-${i}`,
+                key: `primary-${color.shade}`,
                 style: [styles.colorSwatch, { backgroundColor: color.hex }],
               },
               React.createElement(
                 Text,
                 { style: [styles.colorLabel, { color: getAccessibleTextColor(color.hex) }] },
-                color.name || `Primary ${i + 1}`
+                color.name || `Primary ${color.shade}`
               ),
               React.createElement(
                 Text,
@@ -244,32 +252,30 @@ function createBrandGuidelinesPDF(brandKit: BrandKit) {
         ),
 
         // Secondary Colors
-        brandKit.colors.secondary.length > 0 &&
-          React.createElement(Text, { style: styles.sectionSubtitle }, 'Secondary Colors'),
-        brandKit.colors.secondary.length > 0 &&
-          React.createElement(
-            View,
-            { style: styles.colorRow },
-            ...brandKit.colors.secondary.map((color, i) =>
+        React.createElement(Text, { style: styles.sectionSubtitle }, 'Secondary Colors'),
+        React.createElement(
+          View,
+          { style: styles.colorRow },
+          ...secondaryColors.slice(0, 6).map((color) =>
+            React.createElement(
+              View,
+              {
+                key: `secondary-${color.shade}`,
+                style: [styles.colorSwatch, { backgroundColor: color.hex }],
+              },
               React.createElement(
-                View,
-                {
-                  key: `secondary-${i}`,
-                  style: [styles.colorSwatch, { backgroundColor: color.hex }],
-                },
-                React.createElement(
-                  Text,
-                  { style: [styles.colorLabel, { color: getAccessibleTextColor(color.hex) }] },
-                  color.name || `Secondary ${i + 1}`
-                ),
-                React.createElement(
-                  Text,
-                  { style: [styles.colorHex, { color: getAccessibleTextColor(color.hex) }] },
-                  color.hex.toUpperCase()
-                )
+                Text,
+                { style: [styles.colorLabel, { color: getAccessibleTextColor(color.hex) }] },
+                color.name || `Secondary ${color.shade}`
+              ),
+              React.createElement(
+                Text,
+                { style: [styles.colorHex, { color: getAccessibleTextColor(color.hex) }] },
+                color.hex.toUpperCase()
               )
             )
-          ),
+          )
+        ),
 
         // Neutral Colors
         React.createElement(Text, { style: styles.sectionSubtitle }, 'Neutral Colors'),
@@ -339,7 +345,7 @@ function createBrandGuidelinesPDF(brandKit: BrandKit) {
           React.createElement(
             Text,
             { style: styles.fontName },
-            `Heading Font: ${brandKit.typography.headingFont.family}`
+            `Heading Font: ${brandKit.typography.headlines.family}`
           ),
           React.createElement(
             Text,
@@ -349,7 +355,7 @@ function createBrandGuidelinesPDF(brandKit: BrandKit) {
           React.createElement(
             Text,
             { style: styles.paragraph },
-            `Category: ${brandKit.typography.headingFont.category}`
+            `Category: ${brandKit.typography.headlines.category}`
           )
         ),
 
@@ -360,7 +366,7 @@ function createBrandGuidelinesPDF(brandKit: BrandKit) {
           React.createElement(
             Text,
             { style: styles.fontName },
-            `Body Font: ${brandKit.typography.bodyFont.family}`
+            `Body Font: ${brandKit.typography.body.family}`
           ),
           React.createElement(
             Text,
@@ -370,7 +376,7 @@ function createBrandGuidelinesPDF(brandKit: BrandKit) {
           React.createElement(
             Text,
             { style: styles.paragraph },
-            `Category: ${brandKit.typography.bodyFont.category}`
+            `Category: ${brandKit.typography.body.category}`
           )
         ),
 
@@ -378,17 +384,17 @@ function createBrandGuidelinesPDF(brandKit: BrandKit) {
         React.createElement(
           Text,
           { style: styles.sectionSubtitle },
-          `Type Scale (${brandKit.typography.scale.ratioName})`
+          'Type Hierarchy'
         ),
-        ...brandKit.typography.scale.sizes.slice(0, 6).map((size) =>
+        ...(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const).map((level) =>
           React.createElement(
             View,
-            { key: size.name, style: styles.typescaleRow },
-            React.createElement(Text, { style: styles.typescaleLabel }, size.name),
-            React.createElement(Text, { style: styles.typescaleSize }, `${size.size}px`),
+            { key: level, style: styles.typescaleRow },
+            React.createElement(Text, { style: styles.typescaleLabel }, level.toUpperCase()),
+            React.createElement(Text, { style: styles.typescaleSize }, brandKit.typography.hierarchy[level].fontSize),
             React.createElement(
               Text,
-              { style: { fontSize: Math.min(size.size, 24) } },
+              { style: { fontSize: 14 } },
               'Sample'
             )
           )
