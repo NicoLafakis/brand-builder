@@ -4,9 +4,11 @@
  * This service integrates GPT models to provide intelligent reasoning
  * for brand personality analysis, tone dimensions, and voice generation.
  *
- * Model Strategy (Cost-Optimized with Quality Where It Matters):
- * - gpt-4o-mini: Data extraction, structured analysis, simple tasks (cheapest: $0.15/$0.60 per 1M tokens)
- * - gpt-5-mini: Brand personality & voice generation - premium reasoning ($0.25/$2.00 per 1M tokens)
+ * Model Strategy (Cost-Optimized):
+ * - gpt-4o-mini: Used for all tasks - reliable and cost-effective ($0.15/$0.60 per 1M tokens)
+ *
+ * NOTE: We previously tried gpt-5-mini but it may not be available in all regions/accounts.
+ * Once confirmed working, we can upgrade REASONING tasks to a more capable model.
  *
  * The AI helps with:
  * - Analyzing brand archetype from website content (semantic understanding vs keyword matching)
@@ -25,12 +27,13 @@ import { ARCHETYPES } from '../utils/personality';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// Model selection based on task type (cost-optimized with quality where it matters)
+// Model selection based on task type
+// Using gpt-4o-mini for everything until we confirm gpt-5-mini availability
 const MODELS = {
-  // Cheapest model for data extraction and structured analysis ($0.15/$0.60 per 1M tokens)
+  // Data extraction and structured analysis
   DATA: 'gpt-4o-mini',
-  // Premium reasoning model for nuanced brand voice and personality ($0.25/$2.00 per 1M tokens)
-  REASONING: 'gpt-5-mini',
+  // Complex reasoning (using same model for now - can upgrade later)
+  REASONING: 'gpt-4o-mini',
 };
 
 interface OpenAIMessage {
@@ -59,32 +62,42 @@ async function callOpenAI(
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
+    console.error('[OpenAI] OPENAI_API_KEY not set');
     throw new Error('OPENAI_API_KEY environment variable is not set');
   }
 
   const model = MODELS[modelType];
+  console.log(`[OpenAI] Calling ${model} for ${modelType} task...`);
 
-  const response = await fetch(OPENAI_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature,
-      max_tokens: 2000,
-    }),
-  });
+  try {
+    const response = await fetch(OPENAI_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        temperature,
+        max_tokens: 2000,
+      }),
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${error}`);
+    if (!response.ok) {
+      const error = await response.text();
+      console.error(`[OpenAI] API error: ${response.status}`, error);
+      throw new Error(`OpenAI API error: ${response.status} - ${error}`);
+    }
+
+    const data: OpenAIResponse = await response.json();
+    const content = data.choices[0]?.message?.content || '';
+    console.log(`[OpenAI] ${model} responded (${content.length} chars)`);
+    return content;
+  } catch (error) {
+    console.error(`[OpenAI] Request failed:`, error);
+    throw error;
   }
-
-  const data: OpenAIResponse = await response.json();
-  return data.choices[0]?.message?.content || '';
 }
 
 /**
