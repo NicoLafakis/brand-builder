@@ -9,7 +9,7 @@ interface ColorPaletteProps {
 }
 
 function ShadeScale({ scale, name, description }: { scale: ColorScale; name: string; description: string }) {
-  const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+  const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
 
   return (
     <div className="space-y-4">

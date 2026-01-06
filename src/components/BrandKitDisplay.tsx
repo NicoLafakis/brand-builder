@@ -9,6 +9,10 @@ import {
   Code,
   Download,
   Blend,
+  Loader2,
+  Info,
+  FileJson,
+  FileCode,
 } from 'lucide-react';
 import type { BrandKit } from '@/lib/types/brand';
 import ColorPalette from './ColorPalette';

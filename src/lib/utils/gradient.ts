@@ -1,9 +1,19 @@
 import { v4 as uuidv4 } from 'uuid';
 import chroma from 'chroma-js';
-import type { Color, ColorPalette, Gradient, GradientPalette } from '../types/brand';
+import type { Color, ColorPalette, ColorScale, Gradient, GradientPalette } from '../types/brand';
 import type { ExtractedGradient } from '../services/extractor';
 import { parseColor } from './color';
 import { isOpenAIAvailable } from '../services/openai';
+
+// Helper to get the base color from a ColorScale
+function getBaseColor(scale: ColorScale): Color {
+  return scale.base || scale[500];
+}
+
+// Helper to get a lighter shade from a ColorScale
+function getLighterShade(scale: ColorScale): Color {
+  return scale[200] || scale[100];
+}
 
 /**
  * Extract colors from a CSS gradient string
@@ -86,9 +96,9 @@ function generateGradientName(colors: Color[], type: string): string {
  */
 export function generateFallbackGradients(colorPalette: ColorPalette): Gradient[] {
   const gradients: Gradient[] = [];
-  const primary = colorPalette.primary[0];
-  const secondary = colorPalette.secondary[0] || colorPalette.primary[1];
-  const accent = colorPalette.accent[0];
+  const primary = getBaseColor(colorPalette.primary);
+  const secondary = getBaseColor(colorPalette.secondary);
+  const accent = getBaseColor(colorPalette.accent);
 
   if (!primary) return gradients;
 
@@ -217,9 +227,9 @@ export async function generateGradientsWithAI(
     return generateFallbackGradients(colorPalette);
   }
 
-  const primary = colorPalette.primary[0];
-  const secondary = colorPalette.secondary[0];
-  const accent = colorPalette.accent[0];
+  const primary = getBaseColor(colorPalette.primary);
+  const secondary = getBaseColor(colorPalette.secondary);
+  const accent = getBaseColor(colorPalette.accent);
 
   if (!primary) {
     return [];

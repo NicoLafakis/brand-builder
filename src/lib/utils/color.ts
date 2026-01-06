@@ -1,5 +1,5 @@
 import chroma from 'chroma-js';
-import type { Color, ColorHarmony, ColorPalette, WCAGContrast } from '../types/brand';
+import type { Color, ColorHarmony, ColorPalette, ColorScale, WCAGContrast } from '../types/brand';
 
 // Convert any color format to our Color type
 export function parseColor(colorValue: string): Color | null {
