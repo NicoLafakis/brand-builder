@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { buildBrandKit } from '@/lib/services/brand-kit-builder';
 import { validateApiKey, unauthorizedResponse } from '@/lib/utils/auth';
 
+// Force dynamic - never cache this route
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60 seconds for extraction
 
 export async function POST(request: NextRequest) {
@@ -39,10 +41,22 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Build the brand kit
+        console.log(`[Generate v1] Starting fresh brand kit generation for: ${validUrl}`);
+
+        // Build the brand kit (always fresh - no caching)
         const brandKit = await buildBrandKit(validUrl);
 
-        return NextResponse.json({ brandKit });
+        // Return with no-cache headers
+        return NextResponse.json(
+            { brandKit },
+            {
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                },
+            }
+        );
     } catch (error) {
         console.error('v1 Brand kit generation error:', error);
 
