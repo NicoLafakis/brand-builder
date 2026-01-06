@@ -1,12 +1,12 @@
 /**
  * OpenAI Service for Brand Builder
  *
- * This service integrates multiple GPT models to provide intelligent reasoning
+ * This service integrates GPT models to provide intelligent reasoning
  * for brand personality analysis, tone dimensions, and voice generation.
  *
- * Model Strategy:
- * - gpt-4.1-mini-2025-04-14: Data crunching, extraction, and structured analysis
- * - gpt-5-mini-2025-08-07: Advanced reasoning for tone, cadence, and voice generation
+ * Model Strategy (Cost-Optimized with Quality Where It Matters):
+ * - gpt-4o-mini: Data extraction, structured analysis, simple tasks (cheapest: $0.15/$0.60 per 1M tokens)
+ * - gpt-5-mini: Brand personality & voice generation - premium reasoning ($0.25/$2.00 per 1M tokens)
  *
  * The AI helps with:
  * - Analyzing brand archetype from website content (semantic understanding vs keyword matching)
@@ -25,12 +25,12 @@ import { ARCHETYPES } from '../utils/personality';
 
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
-// Model selection based on task type
+// Model selection based on task type (cost-optimized with quality where it matters)
 const MODELS = {
-  // Fast model for data extraction and structured analysis
-  DATA: 'gpt-4.1-mini-2025-04-14',
-  // Advanced reasoning model for nuanced brand voice and tone decisions
-  REASONING: 'gpt-5-mini-2025-08-07',
+  // Cheapest model for data extraction and structured analysis ($0.15/$0.60 per 1M tokens)
+  DATA: 'gpt-4o-mini',
+  // Premium reasoning model for nuanced brand voice and personality ($0.25/$2.00 per 1M tokens)
+  REASONING: 'gpt-5-mini',
 };
 
 interface OpenAIMessage {
