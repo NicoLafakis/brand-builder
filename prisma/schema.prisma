@@ -1,0 +1,117 @@
+// Brand Builder Prisma Schema
+// Flexible design using JSON for step data to allow schema evolution
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Main brand kit record - tracks overall generation status
+model BrandKit {
+  id        String   @id @default(cuid())
+  domain    String
+  name      String?
+  status    BrandKitStatus @default(PENDING)
+
+  // Store the final compiled brand kit as JSON (flexible structure)
+  data      Json?
+
+  // Error tracking
+  error     String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relation to generation steps
+  steps     GenerationStep[]
+
+  @@index([domain])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Individual generation steps - each AI call or extraction task
+model GenerationStep {
+  id          String   @id @default(cuid())
+  brandKitId  String
+  brandKit    BrandKit @relation(fields: [brandKitId], references: [id], onDelete: Cascade)
+
+  // Step identification
+  stepType    StepType
+  stepOrder   Int      @default(0)
+
+  // Status tracking
+  status      StepStatus @default(PENDING)
+
+  // Input/output data as JSON (flexible - can store any structure)
+  input       Json?
+  output      Json?
+
+  // Error tracking for retries
+  error       String?
+  attempts    Int      @default(0)
+
+  // Performance tracking
+  startedAt   DateTime?
+  completedAt DateTime?
+  durationMs  Int?
+
+  // AI model used (for cost tracking)
+  model       String?
+  tokensUsed  Int?
+
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([brandKitId, stepType])
+  @@index([brandKitId])
+  @@index([status])
+}
+
+// Overall brand kit generation status
+enum BrandKitStatus {
+  PENDING
+  EXTRACTING
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+// Individual step status
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+// Types of generation steps (order matters for pipeline)
+enum StepType {
+  // Extraction phase
+  FETCH_WEBSITE      // Fetch and parse website HTML/CSS
+  EXTRACT_COLORS     // Extract colors from CSS/images
+  EXTRACT_FONTS      // Extract font information
+  EXTRACT_LOGOS      // Find and download logos
+  EXTRACT_CONTENT    // Extract text content for analysis
+
+  // AI Generation phase
+  GENERATE_PALETTE   // Generate full color palette from extracted colors
+  GENERATE_GRADIENTS // Generate gradient suggestions
+  GENERATE_TYPOGRAPHY // Generate typography recommendations
+  GENERATE_BUTTONS   // Generate button styles
+  GENERATE_HEROES    // Generate hero section presets
+
+  // Brand voice phase (uses premium AI model)
+  ANALYZE_PERSONALITY // Analyze brand personality/archetype
+  GENERATE_VOICE     // Generate brand voice guidelines
+
+  // Final compilation
+  GENERATE_TOKENS    // Generate design tokens
+  COMPILE_KIT        // Compile final brand kit
+}
