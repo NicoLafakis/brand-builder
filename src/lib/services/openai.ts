@@ -4,11 +4,9 @@
  * This service integrates GPT models to provide intelligent reasoning
  * for brand personality analysis, tone dimensions, and voice generation.
  *
- * Model Strategy (Cost-Optimized):
- * - gpt-4o-mini: Used for all tasks - reliable and cost-effective ($0.15/$0.60 per 1M tokens)
- *
- * NOTE: We previously tried gpt-5-mini but it may not be available in all regions/accounts.
- * Once confirmed working, we can upgrade REASONING tasks to a more capable model.
+ * Model Strategy:
+ * - DATA tasks (gpt-4o-mini): Fast, cheap extraction - $0.15/$0.60 per 1M tokens
+ * - REASONING tasks (gpt-4.1-mini): Better instruction following for nuanced analysis - $0.40/$1.60 per 1M tokens
  *
  * The AI helps with:
  * - Analyzing brand archetype from website content (semantic understanding vs keyword matching)
@@ -28,12 +26,11 @@ import { ARCHETYPES } from '../utils/personality';
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 
 // Model selection based on task type
-// Using gpt-4o-mini for everything until we confirm gpt-5-mini availability
 const MODELS = {
-  // Data extraction and structured analysis
+  // Fast/cheap model for structured data extraction
   DATA: 'gpt-4o-mini',
-  // Complex reasoning (using same model for now - can upgrade later)
-  REASONING: 'gpt-4o-mini',
+  // Better model for nuanced reasoning (tone analysis, voice generation)
+  REASONING: 'gpt-4.1-mini',
 };
 
 interface OpenAIMessage {
